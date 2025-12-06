@@ -88,7 +88,7 @@ export const seed = mutation({
         employeeId: 'E-102',
         name: 'Aina Rahman',
         email: 'aina.rahman@company.com',
-        phoneNumber: '+60123456789',
+        phoneNumber: '60123456789',
         position: 'Sales Manager',
         isActive: true,
         createdAt: now,
@@ -97,7 +97,7 @@ export const seed = mutation({
         employeeId: 'E-221',
         name: 'Zhi Xuan',
         email: 'zhi.xuan@company.com',
-        phoneNumber: '+60123456790',
+        phoneNumber: '60123456790',
         position: 'Marketing Executive',
         isActive: true,
         createdAt: now,
@@ -106,7 +106,7 @@ export const seed = mutation({
         employeeId: 'E-118',
         name: 'Mei Lin',
         email: 'mei.lin@company.com',
-        phoneNumber: '+60123456791',
+        phoneNumber: '60123456791',
         position: 'HR Coordinator',
         isActive: true,
         createdAt: now,
@@ -115,7 +115,7 @@ export const seed = mutation({
         employeeId: 'E-142',
         name: 'Dev Sharma',
         email: 'dev.sharma@company.com',
-        phoneNumber: '+60123456792',
+        phoneNumber: '60123456792',
         position: 'Software Engineer',
         isActive: true,
         createdAt: now,
@@ -133,18 +133,14 @@ export const seed = mutation({
       {
         employeeId: employeeIds['E-102'],
         display_id: 401,
-        employee_id: 'E-102',
-        employee_name: 'Aina Rahman',
         submission_date: '2025-12-01T08:12:00Z',
         receipt_date: '2025-11-30',
         merchant_name: "Madam Kwan's",
         total_amount: 180.4,
         category: 'Client Meal',
-        status: 'Flagged',
-        is_flagged: true,
+        status: 'Rejected',
         flag_reason: 'Alcohol detected in line item',
         image_url: 'https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=800&q=80',
-        is_paid: false,
         is_modified: false,
         createdAt: '2025-12-01T08:12:00Z',
         updatedAt: '2025-12-01T08:12:00Z',
@@ -152,19 +148,14 @@ export const seed = mutation({
       {
         employeeId: employeeIds['E-221'],
         display_id: 402,
-        employee_id: 'E-221',
-        employee_name: 'Zhi Xuan',
         submission_date: '2025-12-02T10:45:00Z',
         receipt_date: '2025-12-01',
         merchant_name: 'Grab Ride',
         total_amount: 36.8,
         category: 'Transport',
         status: 'Paid',
-        is_flagged: false,
-        flag_reason: '',
         approver_id: 10,
         image_url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
-        is_paid: true,
         payment_date: '2025-12-02T15:00:00Z',
         is_modified: false,
         createdAt: '2025-12-02T10:45:00Z',
@@ -173,19 +164,14 @@ export const seed = mutation({
       {
         employeeId: employeeIds['E-118'],
         display_id: 403,
-        employee_id: 'E-118',
-        employee_name: 'Mei Lin',
         submission_date: '2025-12-03T09:01:00Z',
         receipt_date: '2025-12-02',
         merchant_name: 'Starbucks',
         total_amount: 24.1,
         category: 'Team Snacks',
         status: 'Approved',
-        is_flagged: false,
-        flag_reason: '',
         approver_id: 11,
         image_url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80',
-        is_paid: false,
         is_modified: false,
         createdAt: '2025-12-03T09:01:00Z',
         updatedAt: '2025-12-03T09:01:00Z',
@@ -193,18 +179,13 @@ export const seed = mutation({
       {
         employeeId: employeeIds['E-142'],
         display_id: 404,
-        employee_id: 'E-142',
-        employee_name: 'Dev Sharma',
         submission_date: '2025-12-03T11:18:00Z',
         receipt_date: '2025-12-03',
         merchant_name: 'Hilton KL',
         total_amount: 420.0,
         category: 'Hotel',
         status: 'Pending Approve',
-        is_flagged: false,
-        flag_reason: '',
         image_url: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=800&q=80',
-        is_paid: false,
         is_modified: false,
         createdAt: '2025-12-03T11:18:00Z',
         updatedAt: '2025-12-03T11:18:00Z',
@@ -237,7 +218,6 @@ export const initiatePayout = mutation({
     // Build the update object conditionally
     const updates = {
       status: "Approved",
-      is_flagged: false,
       updatedAt: new Date().toISOString(),
     };
 
@@ -293,7 +273,7 @@ async function scheduleNotification(ctx, receiptId, status, reason) {
     case "Paid":
       message = `Your receipt for ${receipt.merchant_name} (RM ${formattedAmount}) has been processed successfully.`;
       break;
-    case "Flagged":
+    case "Rejected":
       message = `Your receipt for ${receipt.merchant_name} (RM ${formattedAmount}) has been rejected.`;
       if (reason) {
         message += ` Reason: ${reason}`;
@@ -326,7 +306,6 @@ export const completePayoutInternal = internalMutation({
     // This runs automatically on the server after 30 seconds
     await ctx.db.patch(args.receiptId, {
       status: "Paid",
-      is_paid: true,
       payment_date: new Date().toISOString(),
       payment_reference: args.paymentReference,
       updatedAt: new Date().toISOString(),
@@ -349,8 +328,6 @@ export const pay = mutation({
   handler: async (ctx, args) => {
     const updates = {
       status: "Paid",
-      is_paid: true,
-      is_flagged: false,
       payment_date: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -379,7 +356,6 @@ export const approve = mutation({
     await ctx.db.patch(args.id, {
       status: "Approved",
       approvedBy: args.approvedBy,
-      is_flagged: false,
       updatedAt: new Date().toISOString(),
     });
 
@@ -408,8 +384,6 @@ export const reject = mutation({
 
     const updates = {
       status: "Rejected",
-      is_flagged: true,
-      is_paid: false,
       updatedAt: new Date().toISOString(),
     };
 
@@ -423,11 +397,11 @@ export const reject = mutation({
     console.log(`✅ Rejected receipt ${args.id}${args.reason ? ` with reason: ${args.reason}` : ''}`);
 
     // Schedule notification
-    await scheduleNotification(ctx, args.id, "Flagged", args.reason);
+    await scheduleNotification(ctx, args.id, "Rejected", args.reason);
   },
 });
 
-// Reopen a flagged claim - change back to pending review
+// Reopen a rejected claim - change back to pending review
 export const reopenClaim = mutation({
   args: {
     id: v.id("receipts"),
@@ -439,15 +413,14 @@ export const reopenClaim = mutation({
       throw new Error("Receipt not found");
     }
 
-    // Only allow reopening if receipt is flagged
-    if (receipt.status !== "Flagged" && !receipt.is_flagged) {
-      throw new Error("Can only reopen flagged receipts");
+    // Only allow reopening if receipt is rejected
+    if (receipt.status !== "Rejected") {
+      throw new Error("Can only reopen rejected receipts");
     }
 
     // Reset to pending approval state
     await ctx.db.patch(args.id, {
       status: "Pending Approve",
-      is_flagged: false,
       flag_reason: undefined, // Clear the flag reason
       updatedAt: new Date().toISOString(),
     });
@@ -487,17 +460,13 @@ export const create = mutation({
       employeeId: args.employeeId,
       submittedBy: args.submittedBy,
       display_id: args.display_id,
-      employee_id: employee.employeeId,
-      employee_name: employee.name,
       submission_date: now,
       receipt_date: args.receipt_date,
       merchant_name: args.merchant_name,
       total_amount: args.total_amount,
       category: args.category,
       status: "Pending Approve",
-      is_flagged: false,
       image_url: args.image_url,
-      is_paid: false,
       is_modified: args.is_modified || false,
       notes: args.notes,
       createdAt: now,

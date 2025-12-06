@@ -15,7 +15,7 @@ import Toast from '../components/ui/Toast';
 import { formatAmount } from '../utils/formatAmount';
 
 export default function Dashboard() {
-  const receiptsData = useQuery(api.receipts.get);
+  const receiptsData = useQuery(api.receipts.getWithDetails);
   const receipts = receiptsData || [];
   const isLoading = receiptsData === undefined;
 
@@ -143,7 +143,7 @@ export default function Dashboard() {
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch =
         (r.merchant_name || '').toLowerCase().includes(searchLower) ||
-        (r.employee_name || '').toLowerCase().includes(searchLower) ||
+        (r.employee?.name || '').toLowerCase().includes(searchLower) ||
         (r.total_amount || 0).toString().includes(searchQuery);
 
       // Status filter - handle case-insensitive matching and trim whitespace
@@ -196,6 +196,12 @@ export default function Dashboard() {
       sorted.sort((a, b) => {
         let aValue = a[sortConfig.key];
         let bValue = b[sortConfig.key];
+
+        // Handle employee name sorting
+        if (sortConfig.key === 'employee_name') {
+          aValue = a.employee?.name || '';
+          bValue = b.employee?.name || '';
+        }
 
         if (sortConfig.key === 'total_amount') {
           aValue = Number(aValue || 0);
@@ -590,10 +596,10 @@ export default function Dashboard() {
             <PieChart
               data={[
                 { label: 'Pending Approve', color: '#f59e0b', amount: receipts.filter(r => r?.status === 'Pending Approve').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
-                { label: 'Rejected', color: '#ef4444', amount: receipts.filter(r => (r?.status === 'Rejected' || r?.status === 'Flagged')).reduce((s, r) => s + Number(r.total_amount || 0), 0) },
+                { label: 'Rejected', color: '#ef4444', amount: receipts.filter(r => r?.status === 'Rejected').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
                 { label: 'Paid', color: '#8b5cf6', amount: receipts.filter(r => r?.status === 'Paid').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
               ].filter(d => d.amount > 0)}
-              totalAmount={receipts.filter(r => ['Pending Approve', 'Rejected', 'Flagged', 'Paid'].includes(r?.status)).reduce((s, r) => s + Number(r.total_amount || 0), 0)}
+              totalAmount={receipts.filter(r => ['Pending Approve', 'Approved', 'Rejected', 'Paid'].includes(r?.status)).reduce((s, r) => s + Number(r.total_amount || 0), 0)}
               onStatusSelect={(label) => setStatusFilter(label)}
               selectedStatus={statusFilter}
             />
@@ -695,7 +701,7 @@ export default function Dashboard() {
                       onClick={() => setSelectedId(r._id)}
                     >
                       <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{r.receipt_date}</td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{r.employee_name}</td>
+                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{r.employee?.name || 'N/A'}</td>
                       <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
                         {r.merchant_name}
                         <div className="text-xs text-gray-500 dark:text-gray-400 font-normal mt-0.5">{r.category}</div>
@@ -703,7 +709,7 @@ export default function Dashboard() {
                       <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{formatAmount(r.total_amount)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <StatusBadge status={r.status} isFlagged={r.is_flagged} />
+                          <StatusBadge status={r.status} isFlagged={r.status === 'Rejected'} />
                           {r.is_modified && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-800">
                               Modified

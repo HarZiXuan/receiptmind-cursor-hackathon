@@ -88,7 +88,7 @@ export default function ReceiptDetailModal({
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatAmount(receipt.total_amount)}</p>
               </div>
               <div className="flex items-center gap-2 flex-wrap justify-end">
-                <StatusBadge status={receipt.status} isFlagged={receipt.is_flagged} />
+                <StatusBadge status={receipt.status} isFlagged={receipt.status === 'Rejected'} />
                 {receipt.is_modified && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-800">
                     Modified
@@ -98,10 +98,10 @@ export default function ReceiptDetailModal({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <DetailItem label="Merchant" value={receipt.merchant_name} />
-              <DetailItem label="Employee" value={receipt.employee_name} />
+              <DetailItem label="Employee" value={receipt.employee?.name || 'N/A'} />
               <DetailItem label="Date" value={receipt.receipt_date} />
               <DetailItem label="Category" value={receipt.category} />
-              <DetailItem label="Employee ID" value={receipt.employee_id} />
+              <DetailItem label="Employee ID" value={receipt.employee?.employeeId || 'N/A'} />
             </div>
             {receipt.image_url && (
               <div>
@@ -139,7 +139,7 @@ export default function ReceiptDetailModal({
               </div>
             )}
 
-            {(status === 'Rejected' || status === 'Flagged') && (
+            {status === 'Rejected' && (
               <div className="flex flex-col gap-3">
                 <button 
                   onClick={() => onReopenClaim(receipt._id)}

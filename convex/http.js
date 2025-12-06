@@ -82,24 +82,24 @@ http.route({
     const body = await request.json();
     
     // Validate required fields
-    const { phoneNumber, receipt_date, merchant_name, total_amount, category, image_url } = body;
+    const { employeeId, receipt_date, merchant_name, total_amount, category, image_url } = body;
     
-    if (!phoneNumber || !receipt_date || !merchant_name || !total_amount || !category || !image_url) {
+    if (!employeeId || !receipt_date || !merchant_name || !total_amount || !category || !image_url) {
       return new Response(JSON.stringify({ 
         error: "Missing required fields",
-        required: ["phoneNumber", "receipt_date", "merchant_name", "total_amount", "category", "image_url"]
+        required: ["employeeId", "receipt_date", "merchant_name", "total_amount", "category", "image_url"]
       }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Get employee by phone number
-    const employee = await ctx.runQuery(api.employees.getByPhoneNumber, { phoneNumber });
+    // Get employee by Convex _id
+    const employee = await ctx.runQuery(api.employees.getById, { id: employeeId });
     
     if (!employee) {
       return new Response(JSON.stringify({ 
-        error: "Employee not found with provided phone number" 
+        error: "Employee not found with provided employee ID" 
       }), {
         status: 404,
         headers: { "Content-Type": "application/json" },

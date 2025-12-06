@@ -95,7 +95,7 @@ export const create = mutation({
       .query("employees")
       .withIndex("by_employee_id", (q) => q.eq("employeeId", args.employeeId))
       .first();
-    
+
     if (existingById) {
       throw new Error(`Employee with ID ${args.employeeId} already exists`);
     }
@@ -105,7 +105,7 @@ export const create = mutation({
       .query("employees")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
-    
+
     if (existingByEmail) {
       throw new Error(`Employee with email ${args.email} already exists`);
     }
@@ -137,14 +137,14 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    
+
     // If employeeId is being updated, check it doesn't conflict
     if (updates.employeeId) {
       const existing = await ctx.db
         .query("employees")
         .withIndex("by_employee_id", (q) => q.eq("employeeId", updates.employeeId))
         .first();
-      
+
       if (existing && existing._id !== id) {
         throw new Error(`Employee ID ${updates.employeeId} is already in use`);
       }
@@ -156,7 +156,7 @@ export const update = mutation({
         .query("employees")
         .withIndex("by_email", (q) => q.eq("email", updates.email))
         .first();
-      
+
       if (existing && existing._id !== id) {
         throw new Error(`Email ${updates.email} is already in use`);
       }
@@ -181,7 +181,7 @@ export const linkUser = mutation({
   handler: async (ctx, args) => {
     // Update employee with userId
     await ctx.db.patch(args.employeeId, { userId: args.userId });
-    
+
     // Update user with employeeId
     await ctx.db.patch(args.userId, { employeeId: args.employeeId });
 

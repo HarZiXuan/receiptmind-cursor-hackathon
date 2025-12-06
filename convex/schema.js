@@ -37,25 +37,21 @@ export default defineSchema({
     
     // EXISTING fields (keep all for backwards compatibility)
     display_id: v.number(),
-    employee_id: v.string(),
-    employee_name: v.string(),
     submission_date: v.string(),
     receipt_date: v.string(),
     merchant_name: v.string(),
     total_amount: v.number(),
     category: v.string(),
     status: v.string(),
-    is_flagged: v.boolean(),
     flag_reason: v.optional(v.string()),
     approver_id: v.optional(v.number()),
     image_url: v.string(),
-    is_paid: v.boolean(),
     
     // NEW tracking fields (TEMPORARY: optional for migration, will be required after)
     payment_date: v.optional(v.string()),
     payment_reference: v.optional(v.string()),
     notes: v.optional(v.string()),
-    is_modified: v.boolean(),
+    is_modified: v.optional(v.boolean()), // Optional for backwards compatibility with existing records
     createdAt: v.optional(v.string()),
     updatedAt: v.optional(v.string()),
   })

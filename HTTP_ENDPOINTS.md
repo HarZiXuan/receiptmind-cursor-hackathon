@@ -39,7 +39,7 @@ curl -X GET "$convexBaseURL/policy" \
 
 ### 2. POST /receipt - Submit Receipt
 
-Submits a new receipt for an employee via phone number.
+Submits a new receipt for an employee via employee ID.
 
 **Request:**
 ```bash
@@ -47,7 +47,7 @@ curl -X POST "$convexBaseURL/receipt" \
   -H "Authorization: Bearer YOUR_BEARER_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "phoneNumber": "+60123456789",
+    "employeeId": "jd72awjnbr49zzwjy4qky8xjk57wrjsj",
     "receipt_date": "2025-12-06",
     "merchant_name": "Coffee Bean",
     "total_amount": 45.50,
@@ -59,7 +59,7 @@ curl -X POST "$convexBaseURL/receipt" \
 ```
 
 **Required Fields:**
-- `phoneNumber` - Employee's phone number (must match employee record)
+- `employeeId` - Employee's Convex database ID (_id, the primary key)
 - `receipt_date` - Date of the transaction (YYYY-MM-DD)
 - `merchant_name` - Name of the merchant/vendor
 - `total_amount` - Receipt amount (number)
@@ -89,12 +89,12 @@ curl -X POST "$convexBaseURL/receipt" \
   ```json
   {
     "error": "Missing required fields",
-    "required": ["phoneNumber", "receipt_date", "merchant_name", "total_amount", "category", "image_url"]
+    "required": ["employeeId", "receipt_date", "merchant_name", "total_amount", "category", "image_url"]
   }
   ```
 - **404 Not Found:** Employee not found
   ```json
-  { "error": "Employee not found with provided phone number" }
+  { "error": "Employee not found with provided employee ID" }
   ```
 - **401 Unauthorized:** Invalid bearer token
 

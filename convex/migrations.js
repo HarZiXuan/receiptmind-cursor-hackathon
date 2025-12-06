@@ -280,6 +280,53 @@ export const runAllMigrations = mutation({
   },
 });
 
+// Remove redundant employee fields from receipts
+export const removeRedundantEmployeeFields = mutation({
+  args: {},
+  handler: async (ctx) => {
+    console.log("🔄 Removing redundant employee fields from receipts...");
+    
+    const receipts = await ctx.db.query("receipts").collect();
+    let updatedCount = 0;
+
+    for (const receipt of receipts) {
+      const updates = {};
+      let needsUpdate = false;
+
+      // Remove employee_id if it exists
+      if (receipt.employee_id !== undefined) {
+        updates.employee_id = undefined;
+        needsUpdate = true;
+      }
+
+      // Remove employee_name if it exists
+      if (receipt.employee_name !== undefined) {
+        updates.employee_name = undefined;
+        needsUpdate = true;
+      }
+
+      // Set is_modified to false if it's missing
+      if (receipt.is_modified === undefined) {
+        updates.is_modified = false;
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        await ctx.db.patch(receipt._id, updates);
+        updatedCount++;
+        console.log(`✓ Updated receipt ${receipt._id} (display_id: ${receipt.display_id})`);
+      }
+    }
+
+    console.log(`✅ Migration complete: ${updatedCount} receipts updated`);
+    return {
+      message: "Removed redundant employee fields from receipts",
+      updated: updatedCount,
+      total: receipts.length,
+    };
+  },
+});
+
 // Reset database (DANGER: Deletes all data!)
 export const resetDatabase = mutation({
   args: { confirm: v.string() },
