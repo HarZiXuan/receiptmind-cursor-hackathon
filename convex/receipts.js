@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+// Get all receipts
 export const get = query({
   args: {},
   handler: async (ctx) => {
@@ -8,18 +9,128 @@ export const get = query({
   },
 });
 
+// Get receipts with employee and user data joined
+export const getWithDetails = query({
+  args: {},
+  handler: async (ctx) => {
+    const receipts = await ctx.db.query("receipts").order("desc").collect();
+    
+    const receiptsWithDetails = await Promise.all(
+      receipts.map(async (receipt) => {
+        let employee = null;
+        let submittedByUser = null;
+        let approvedByUser = null;
+
+        if (receipt.employeeId) {
+          employee = await ctx.db.get(receipt.employeeId);
+        }
+        if (receipt.submittedBy) {
+          submittedByUser = await ctx.db.get(receipt.submittedBy);
+        }
+        if (receipt.approvedBy) {
+          approvedByUser = await ctx.db.get(receipt.approvedBy);
+        }
+
+        return {
+          ...receipt,
+          employee,
+          submittedByUser,
+          approvedByUser,
+        };
+      })
+    );
+
+    return receiptsWithDetails;
+  },
+});
+
+// Get receipts by employee
+export const getByEmployee = query({
+  args: { employeeId: v.id("employees") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("receipts")
+      .withIndex("by_employee", (q) => q.eq("employeeId", args.employeeId))
+      .order("desc")
+      .collect();
+  },
+});
+
+// Get receipts by status
+export const getByStatus = query({
+  args: { status: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("receipts")
+      .withIndex("by_status", (q) => q.eq("status", args.status))
+      .order("desc")
+      .collect();
+  },
+});
+
+// Seed database with initial data
 export const seed = mutation({
   args: {},
   handler: async (ctx) => {
     // Check if data already exists
-    const existing = await ctx.db.query("receipts").first();
-    if (existing) {
+    const existingReceipts = await ctx.db.query("receipts").first();
+    if (existingReceipts) {
       console.log("Database already contains receipts. Skipping seed.");
       return { message: "Database already seeded", count: 0 };
     }
 
+    const now = new Date().toISOString();
+
+    // First, create employees
+    const employeeData = [
+      {
+        employeeId: 'E-102',
+        name: 'Aina Rahman',
+        email: 'aina.rahman@company.com',
+        phoneNumber: '+60123456789',
+        position: 'Sales Manager',
+        isActive: true,
+        createdAt: now,
+      },
+      {
+        employeeId: 'E-221',
+        name: 'Zhi Xuan',
+        email: 'zhi.xuan@company.com',
+        phoneNumber: '+60123456790',
+        position: 'Marketing Executive',
+        isActive: true,
+        createdAt: now,
+      },
+      {
+        employeeId: 'E-118',
+        name: 'Mei Lin',
+        email: 'mei.lin@company.com',
+        phoneNumber: '+60123456791',
+        position: 'HR Coordinator',
+        isActive: true,
+        createdAt: now,
+      },
+      {
+        employeeId: 'E-142',
+        name: 'Dev Sharma',
+        email: 'dev.sharma@company.com',
+        phoneNumber: '+60123456792',
+        position: 'Software Engineer',
+        isActive: true,
+        createdAt: now,
+      },
+    ];
+
+    const employeeIds = {};
+    for (const emp of employeeData) {
+      const empId = await ctx.db.insert("employees", emp);
+      employeeIds[emp.employeeId] = empId;
+    }
+
+    // Now create receipts with proper foreign keys
     const mockReceipts = [
       {
+        employeeId: employeeIds['E-102'],
         display_id: 401,
         employee_id: 'E-102',
         employee_name: 'Aina Rahman',
@@ -33,9 +144,12 @@ export const seed = mutation({
         flag_reason: 'Alcohol detected in line item',
         image_url: 'https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=800&q=80',
         is_paid: false,
-        physical_id_tag: '#405'
+        physical_id_tag: '#405',
+        createdAt: '2025-12-01T08:12:00Z',
+        updatedAt: '2025-12-01T08:12:00Z',
       },
       {
+        employeeId: employeeIds['E-221'],
         display_id: 402,
         employee_id: 'E-221',
         employee_name: 'Zhi Xuan',
@@ -50,9 +164,13 @@ export const seed = mutation({
         approver_id: 10,
         image_url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
         is_paid: true,
-        physical_id_tag: '#406'
+        payment_date: '2025-12-02T15:00:00Z',
+        physical_id_tag: '#406',
+        createdAt: '2025-12-02T10:45:00Z',
+        updatedAt: '2025-12-02T15:00:00Z',
       },
       {
+        employeeId: employeeIds['E-118'],
         display_id: 403,
         employee_id: 'E-118',
         employee_name: 'Mei Lin',
@@ -67,9 +185,12 @@ export const seed = mutation({
         approver_id: 11,
         image_url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80',
         is_paid: false,
-        physical_id_tag: null
+        physical_id_tag: null,
+        createdAt: '2025-12-03T09:01:00Z',
+        updatedAt: '2025-12-03T09:01:00Z',
       },
       {
+        employeeId: employeeIds['E-142'],
         display_id: 404,
         employee_id: 'E-142',
         employee_name: 'Dev Sharma',
@@ -83,7 +204,9 @@ export const seed = mutation({
         flag_reason: '',
         image_url: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=800&q=80',
         is_paid: false,
-        physical_id_tag: '#407'
+        physical_id_tag: '#407',
+        createdAt: '2025-12-03T11:18:00Z',
+        updatedAt: '2025-12-03T11:18:00Z',
       }
     ];
 
@@ -93,79 +216,148 @@ export const seed = mutation({
       insertedCount++;
     }
     
-    console.log(`✅ Seeded ${insertedCount} receipts into database`);
-    return { message: "Database seeded successfully", count: insertedCount };
+    console.log(`✅ Seeded ${employeeData.length} employees and ${insertedCount} receipts into database`);
+    return { 
+      message: "Database seeded successfully", 
+      employeeCount: employeeData.length,
+      receiptCount: insertedCount 
+    };
   },
 });
 
-export const approve = mutation({
-  args: { id: v.id("receipts") },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, {
-      status: "Approved",
-      is_flagged: false,
-    });
-  },
-});
-
+// Pay/Approve a receipt
 export const pay = mutation({
-  args: { id: v.id("receipts") },
+  args: { 
+    id: v.id("receipts"),
+    approvedBy: v.optional(v.id("users")),
+    paymentReference: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, {
+    const updates = {
       status: "Paid",
       is_paid: true,
       is_flagged: false,
+      payment_date: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (args.approvedBy) {
+      updates.approvedBy = args.approvedBy;
+    }
+    if (args.paymentReference) {
+      updates.payment_reference = args.paymentReference;
+    }
+
+    await ctx.db.patch(args.id, updates);
+  },
+});
+
+// Approve a receipt (without payment)
+export const approve = mutation({
+  args: { 
+    id: v.id("receipts"),
+    approvedBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      status: "Approved",
+      approvedBy: args.approvedBy,
+      is_flagged: false,
+      updatedAt: new Date().toISOString(),
     });
   },
 });
 
+// Reject a receipt
 export const reject = mutation({
-  args: { id: v.id("receipts") },
+  args: { 
+    id: v.id("receipts"),
+    reason: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, {
+    const updates = {
       status: "Pending Approve",
       is_paid: false,
-    });
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (args.reason) {
+      updates.notes = args.reason;
+    }
+
+    await ctx.db.patch(args.id, updates);
   },
 });
 
-export const undoApproval = mutation({
-  args: { id: v.id("receipts") },
+// Create a new receipt
+export const create = mutation({
+  args: {
+    employeeId: v.id("employees"),
+    display_id: v.number(),
+    receipt_date: v.string(),
+    merchant_name: v.string(),
+    total_amount: v.number(),
+    category: v.string(),
+    image_url: v.string(),
+    submittedBy: v.optional(v.id("users")),
+    physical_id_tag: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, {
+    // Get employee details
+    const employee = await ctx.db.get(args.employeeId);
+    if (!employee) {
+      throw new Error("Employee not found");
+    }
+
+    const now = new Date().toISOString();
+
+    const receiptId = await ctx.db.insert("receipts", {
+      employeeId: args.employeeId,
+      submittedBy: args.submittedBy,
+      display_id: args.display_id,
+      employee_id: employee.employeeId,
+      employee_name: employee.name,
+      submission_date: now,
+      receipt_date: args.receipt_date,
+      merchant_name: args.merchant_name,
+      total_amount: args.total_amount,
+      category: args.category,
       status: "Pending Approve",
+      is_flagged: false,
+      image_url: args.image_url,
       is_paid: false,
+      physical_id_tag: args.physical_id_tag,
+      notes: args.notes,
+      createdAt: now,
+      updatedAt: now,
     });
+
+    return receiptId;
   },
 });
 
-export const reopenClaim = mutation({
-  args: { id: v.id("receipts") },
+// Update receipt
+export const update = mutation({
+  args: {
+    id: v.id("receipts"),
+    receipt_date: v.optional(v.string()),
+    merchant_name: v.optional(v.string()),
+    total_amount: v.optional(v.number()),
+    category: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, {
-      status: "Pending Approve",
-      is_flagged: false,
-      flag_reason: '',
-    });
+    const { id, ...updates } = args;
+    
+    // Filter out undefined values
+    const filteredUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, v]) => v !== undefined)
+    );
+
+    filteredUpdates.updatedAt = new Date().toISOString();
+
+    await ctx.db.patch(id, filteredUpdates);
+    return id;
   },
 });
-
-export const sendRejectionNote = mutation({
-  args: { id: v.id("receipts"), note: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    // Mark as rejected - you might want to add a rejection_note field to schema
-    await ctx.db.patch(args.id, {
-      status: "Pending Approve", // Or create a "Rejected" status if needed
-      is_flagged: false,
-    });
-  },
-});
-
-export const archive = mutation({
-  args: { id: v.id("receipts") },
-  handler: async (ctx, args) => {
-    // Delete the receipt from the database
-    await ctx.db.delete(args.id);
-  },
-});
-

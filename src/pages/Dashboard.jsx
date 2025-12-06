@@ -3,6 +3,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Search, Plus, Activity, CheckCircle2, AlertCircle, Clock, DollarSign } from 'lucide-react';
 import LineChart from '../components/charts/LineChart';
+import PieChart from '../components/charts/PieChart';
 import ActionButton from '../components/ui/ActionButton';
 import StatRow from '../components/ui/StatRow';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -437,142 +438,23 @@ export default function Dashboard() {
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-card flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-gray-900">All Status</h3>
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+              <button className="px-3 py-1 text-xs font-medium bg-white text-gray-900 shadow-sm rounded-md">Categories</button>
+              <button className="px-3 py-1 text-xs font-medium text-gray-500 hover:text-gray-900 rounded-md">Groups</button>
+            </div>
           </div>
-          <div className="space-y-2 flex-1">
-            {/* All Status Option */}
-            <button
-              onClick={() => setStatusFilter('ALL')}
-              className={`w-full flex items-center justify-between p-3 rounded-lg transition-all ${
-                statusFilter === 'ALL'
-                  ? 'bg-gray-900 text-white shadow-md'
-                  : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  statusFilter === 'ALL' ? 'bg-white/20' : 'bg-white'
-                }`}>
-                  <Activity size={16} className={statusFilter === 'ALL' ? 'text-white' : 'text-gray-600'} />
-                </div>
-                <div className="text-sm font-medium">All Status</div>
-              </div>
-              <div className="text-right">
-                <div className={`text-sm font-medium ${statusFilter === 'ALL' ? 'text-white' : 'text-gray-900'}`}>
-                  {receipts.length}
-                </div>
-                <div className={`text-xs ${statusFilter === 'ALL' ? 'text-white/80' : 'text-gray-500'}`}>
-                  {formatAmount(receipts.reduce((s, r) => s + Number(r.total_amount || 0), 0))}
-                </div>
-              </div>
-            </button>
-
-            {/* Pending Approve */}
-            <button
-              onClick={() => setStatusFilter('Pending Approve')}
-              className={`w-full flex items-center justify-between p-3 rounded-lg transition-all border ${
-                statusFilter === 'Pending Approve'
-                  ? 'bg-amber-50 border-amber-200 shadow-md'
-                  : 'bg-white border-amber-100 hover:bg-amber-50/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  statusFilter === 'Pending Approve' ? 'bg-amber-100' : 'bg-amber-50'
-                }`}>
-                  <Clock size={16} className="text-amber-700" />
-                </div>
-                <div className="text-sm font-medium text-gray-700">Pending Approve</div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  {receipts.filter(r => r && r.status === 'Pending Approve').length}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {formatAmount(receipts.filter(r => r && r.status === 'Pending Approve').reduce((s, r) => s + Number(r.total_amount || 0), 0))}
-                </div>
-              </div>
-            </button>
-
-            {/* Approved */}
-            <button
-              onClick={() => setStatusFilter('Approved')}
-              className={`w-full flex items-center justify-between p-3 rounded-lg transition-all border ${
-                statusFilter === 'Approved'
-                  ? 'bg-green-50 border-green-200 shadow-md'
-                  : 'bg-white border-green-100 hover:bg-green-50/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  statusFilter === 'Approved' ? 'bg-green-100' : 'bg-green-50'
-                }`}>
-                  <CheckCircle2 size={16} className="text-green-700" />
-                </div>
-                <div className="text-sm font-medium text-gray-700">Approved</div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  {receipts.filter(r => r && r.status === 'Approved').length}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {formatAmount(receipts.filter(r => r && r.status === 'Approved').reduce((s, r) => s + Number(r.total_amount || 0), 0))}
-                </div>
-              </div>
-            </button>
-
-            {/* Flagged */}
-            <button
-              onClick={() => setStatusFilter('Flagged')}
-              className={`w-full flex items-center justify-between p-3 rounded-lg transition-all border ${
-                statusFilter === 'Flagged'
-                  ? 'bg-red-50 border-red-200 shadow-md'
-                  : 'bg-white border-red-100 hover:bg-red-50/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  statusFilter === 'Flagged' ? 'bg-red-100' : 'bg-red-50'
-                }`}>
-                  <AlertCircle size={16} className="text-red-700" />
-                </div>
-                <div className="text-sm font-medium text-gray-700">Flagged</div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  {receipts.filter(r => r && r.status === 'Flagged').length}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {formatAmount(receipts.filter(r => r && r.status === 'Flagged').reduce((s, r) => s + Number(r.total_amount || 0), 0))}
-                </div>
-              </div>
-            </button>
-
-            {/* Paid */}
-            <button
-              onClick={() => setStatusFilter('Paid')}
-              className={`w-full flex items-center justify-between p-3 rounded-lg transition-all border ${
-                statusFilter === 'Paid'
-                  ? 'bg-purple-50 border-purple-200 shadow-md'
-                  : 'bg-white border-purple-100 hover:bg-purple-50/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  statusFilter === 'Paid' ? 'bg-purple-100' : 'bg-purple-50'
-                }`}>
-                  <DollarSign size={16} className="text-purple-700" />
-                </div>
-                <div className="text-sm font-medium text-gray-700">Paid</div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  {receipts.filter(r => r && r.status === 'Paid').length}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {formatAmount(receipts.filter(r => r && r.status === 'Paid').reduce((s, r) => s + Number(r.total_amount || 0), 0))}
-                </div>
-              </div>
-            </button>
+          <div className="flex-1">
+            <PieChart 
+              data={[
+                { label: 'Pending Approve', color: '#f59e0b', amount: receipts.filter(r => r?.status === 'Pending Approve').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
+                { label: 'Approved', color: '#10b981', amount: receipts.filter(r => r?.status === 'Approved').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
+                { label: 'Flagged', color: '#ef4444', amount: receipts.filter(r => r?.status === 'Flagged').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
+                { label: 'Paid', color: '#8b5cf6', amount: receipts.filter(r => r?.status === 'Paid').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
+              ].filter(d => d.amount > 0)} 
+              totalAmount={receipts.reduce((s, r) => s + Number(r.total_amount || 0), 0)}
+              onStatusSelect={(label) => setStatusFilter(label === statusFilter ? 'ALL' : label)}
+              selectedStatus={statusFilter}
+            />
           </div>
         </div>
       </div>

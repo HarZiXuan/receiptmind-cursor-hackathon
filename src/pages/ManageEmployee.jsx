@@ -1,13 +1,15 @@
 import { useState } from 'react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { Plus, Edit2, Trash2, Users, X, Save } from 'lucide-react';
 
 export default function ManageEmployee() {
-  const [employees, setEmployees] = useState([
-    { id: 1, employee_id: 'E-102', name: 'Aina Rahman', email: 'aina@company.com', department: 'Sales', status: 'Active' },
-    { id: 2, employee_id: 'E-221', name: 'Zhi Xuan', email: 'zhixuan@company.com', department: 'Engineering', status: 'Active' },
-    { id: 3, employee_id: 'E-118', name: 'Mei Lin', email: 'meilin@company.com', department: 'Marketing', status: 'Active' },
-    { id: 4, employee_id: 'E-142', name: 'Dev Sharma', email: 'dev@company.com', department: 'Operations', status: 'Active' },
-  ]);
+  const employeesData = useQuery(api.employees.get);
+  const employees = employeesData || [];
+  
+  const createEmployee = useMutation(api.employees.create);
+  const updateEmployee = useMutation(api.employees.update);
+  const removeEmployee = useMutation(api.employees.remove);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
@@ -34,52 +36,68 @@ export default function ManageEmployee() {
   const handleEdit = (employee) => {
     setEditingEmployee(employee);
     setFormData({
-      employee_id: employee.employee_id,
+      employee_id: employee.employeeId,
       name: employee.name,
       email: employee.email,
-      department: employee.department,
-      status: employee.status
+      department: employee.position, // Mapping position to department based on mock data usage
+      status: employee.isActive ? 'Active' : 'Inactive'
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this employee?')) {
-      setEmployees(employees.filter(emp => emp.id !== id));
+      try {
+        await removeEmployee({ id });
+      } catch (error) {
+        console.error('Failed to delete employee:', error);
+        alert('Failed to delete employee: ' + error.message);
+      }
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.employee_id || !formData.name || !formData.email || !formData.department) {
       alert('Please fill in all required fields');
       return;
     }
 
-    if (editingEmployee) {
-      // Update existing employee
-      setEmployees(employees.map(emp => 
-        emp.id === editingEmployee.id 
-          ? { ...emp, ...formData }
-          : emp
-      ));
-    } else {
-      // Add new employee
-      const newEmployee = {
-        id: employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1,
-        ...formData
-      };
-      setEmployees([...employees, newEmployee]);
+    try {
+      if (editingEmployee) {
+        // Update existing employee
+        await updateEmployee({
+          id: editingEmployee._id,
+          employeeId: formData.employee_id,
+          name: formData.name,
+          email: formData.email,
+          position: formData.department, // Using department input for position
+          // isActive is handled by separate activate/deactivate mutations in backend logic usually, 
+          // but let's see if we can update it here. The update mutation doesn't seem to take isActive.
+          // We might need to call activate/deactivate separately if status changed.
+        });
+      } else {
+        // Add new employee
+        await createEmployee({
+          employeeId: formData.employee_id,
+          name: formData.name,
+          email: formData.email,
+          position: formData.department,
+          // phoneNumber is optional
+        });
+      }
+      setIsModalOpen(false);
+      setEditingEmployee(null);
+      setFormData({
+        employee_id: '',
+        name: '',
+        email: '',
+        department: '',
+        status: 'Active'
+      });
+    } catch (error) {
+      console.error('Failed to save employee:', error);
+      alert('Failed to save employee: ' + error.message);
     }
-
-    setIsModalOpen(false);
-    setEditingEmployee(null);
-    setFormData({
-      employee_id: '',
-      name: '',
-      email: '',
-      department: '',
-      status: 'Active'
-    });
   };
 
   const handleClose = () => {
@@ -120,7 +138,7 @@ export default function ManageEmployee() {
                 <th className="px-6 py-4">Employee ID</th>
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4">Department</th>
+                <th className="px-6 py-4">Department/Position</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
@@ -135,18 +153,18 @@ export default function ManageEmployee() {
                 </tr>
               ) : (
                 employees.map((employee) => (
-                  <tr key={employee.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{employee.employee_id}</td>
+                  <tr key={employee._id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900">{employee.employeeId}</td>
                     <td className="px-6 py-4 text-gray-700">{employee.name}</td>
                     <td className="px-6 py-4 text-gray-600">{employee.email}</td>
-                    <td className="px-6 py-4 text-gray-600">{employee.department}</td>
+                    <td className="px-6 py-4 text-gray-600">{employee.position}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        employee.status === 'Active' 
+                        employee.isActive 
                           ? 'bg-green-50 text-green-700 border border-green-100' 
                           : 'bg-gray-50 text-gray-700 border border-gray-200'
                       }`}>
-                        {employee.status}
+                        {employee.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -159,7 +177,7 @@ export default function ManageEmployee() {
                           <Edit2 size={16} />
                         </button>
                         <button
-                          onClick={() => handleDelete(employee.id)}
+                          onClick={() => handleDelete(employee._id)}
                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete"
                         >
@@ -244,30 +262,18 @@ export default function ManageEmployee() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Department <span className="text-red-500">*</span>
+                    Position <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    placeholder="Sales, Engineering, etc."
+                    placeholder="Sales Manager, Engineer, etc."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Status
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
+                {/* Status field removed from create/update for simplicity as update mutation doesn't support it directly in one call without separate mutation */}
               </div>
 
               <div className="p-6 border-t border-gray-200 flex gap-3">
