@@ -1,54 +1,5 @@
 # HTTP Endpoints - Testing Guide
 
-## Setup Instructions
-
-### 1. Configure Bearer Token
-
-You need to set up the `API_BEARER_TOKEN` environment variable in your Convex deployment.
-
-**Option A: Via Convex Dashboard**
-1. Go to your Convex dashboard: https://dashboard.convex.dev
-2. Select your project
-3. Navigate to **Settings** → **Environment Variables**
-4. Add a new variable:
-   - Name: `API_BEARER_TOKEN`
-   - Value: Generate a secure token (e.g., use: `openssl rand -hex 32`)
-   - Example: `a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6`
-
-**Option B: Via CLI**
-```bash
-# Generate a secure token
-BEARER_TOKEN=$(openssl rand -hex 32)
-
-# Set it in Convex
-npx convex env set API_BEARER_TOKEN "$BEARER_TOKEN"
-
-# Save it for your n8n configuration
-echo "Your bearer token: $BEARER_TOKEN"
-```
-
-### 2. Deploy the HTTP Routes
-
-Make sure your Convex deployment is running and has deployed the http.js file:
-
-```bash
-npx convex dev
-```
-
-### 3. Get Your Deployment URL
-
-Your HTTP endpoints will be available at:
-```
-https://YOUR_DEPLOYMENT_NAME.convex.site/
-```
-
-You can find your deployment URL in:
-- The Convex dashboard
-- The output of `npx convex dev`
-- Your `.env` file (VITE_CONVEX_URL, replace `.cloud` with `.site`)
-
----
-
 ## API Endpoints
 
 ### 1. GET /policy - Get Active Policy
