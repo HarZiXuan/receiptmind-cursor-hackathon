@@ -15,7 +15,7 @@ export const getWithDetails = query({
   args: {},
   handler: async (ctx) => {
     const receipts = await ctx.db.query("receipts").order("desc").collect();
-    
+
     const receiptsWithDetails = await Promise.all(
       receipts.map(async (receipt) => {
         let employee = null;
@@ -216,19 +216,19 @@ export const seed = mutation({
       await ctx.db.insert("receipts", r);
       insertedCount++;
     }
-    
+
     console.log(`✅ Seeded ${employeeData.length} employees and ${insertedCount} receipts into database`);
-    return { 
-      message: "Database seeded successfully", 
+    return {
+      message: "Database seeded successfully",
       employeeCount: employeeData.length,
-      receiptCount: insertedCount 
+      receiptCount: insertedCount
     };
   },
 });
 
 // Initiate payout with 30-second processing delay (server-side)
 export const initiatePayout = mutation({
-  args: { 
+  args: {
     id: v.id("receipts"),
     approvedBy: v.optional(v.id("users")),
     paymentReference: v.optional(v.string()),
@@ -248,25 +248,25 @@ export const initiatePayout = mutation({
 
     // Mark as approved immediately
     await ctx.db.patch(args.id, updates);
-    
+
     // Schedule completion after 30 seconds (happens on server, survives browser refresh!)
     await ctx.scheduler.runAfter(
       30000, // 30 seconds in milliseconds
       internal.receipts.completePayoutInternal,
-      { 
+      {
         receiptId: args.id,
         paymentReference: args.paymentReference || `PAY-${Date.now()}`,
       }
     );
-    
+
     const completionTime = new Date(Date.now() + 30000).toISOString();
     console.log(`💰 Payment approved for receipt ${args.id}, will complete payment at ${completionTime}`);
-    
+
     // Schedule notification
     await scheduleNotification(ctx, args.id, "Approved");
 
-    return { 
-      receiptId: args.id, 
+    return {
+      receiptId: args.id,
       status: "Approved",
       willCompleteAt: completionTime
     };
@@ -277,24 +277,48 @@ export const initiatePayout = mutation({
 async function scheduleNotification(ctx, receiptId, status, reason) {
   const receipt = await ctx.db.get(receiptId);
   if (!receipt) return;
-  
+
   const employee = await ctx.db.get(receipt.employeeId);
   if (!employee || !employee.phoneNumber) return;
 
+  // Format amount with 2 decimal places
+  const formattedAmount = receipt.total_amount.toFixed(2);
+
+  // Build human-like message based on status
+  let message;
+  switch (status) {
+    case "Approved":
+      message = `Your receipt for ${receipt.merchant_name} (RM ${formattedAmount}) has been approved the bank transfer is currently processed.`;
+      break;
+    case "Paid":
+      message = `Your receipt for ${receipt.merchant_name} (RM ${formattedAmount}) has been processed successfully.`;
+      break;
+    case "Flagged":
+      message = `Your receipt for ${receipt.merchant_name} (RM ${formattedAmount}) has been rejected.`;
+      if (reason) {
+        message += ` Reason: ${reason}`;
+      }
+      break;
+    case "Pending Approve":
+      if (reason && reason.includes("reopened")) {
+        message = reason; // Use the custom reason if provided (e.g., for reopen)
+      } else {
+        message = `Your receipt for ${receipt.merchant_name} (RM ${formattedAmount}) is pending approval.`;
+      }
+      break;
+    default:
+      message = `Your receipt for ${receipt.merchant_name} (RM ${formattedAmount}) status has been updated to ${status}.`;
+  }
+
   await ctx.scheduler.runAfter(0, api.notifications.sendEmployeeNotification, {
-    phoneNumber: employee.phoneNumber,
-    status,
-    receiptId: receipt.display_id,
-    amount: receipt.total_amount,
-    date: receipt.receipt_date,
-    merchantName: receipt.merchant_name,
-    reason,
+    employeeId: receipt.employeeId,
+    message: message,
   });
 }
 
 // Internal mutation called by scheduler after 30 seconds
 export const completePayoutInternal = internalMutation({
-  args: { 
+  args: {
     receiptId: v.id("receipts"),
     paymentReference: v.string(),
   },
@@ -307,9 +331,9 @@ export const completePayoutInternal = internalMutation({
       payment_reference: args.paymentReference,
       updatedAt: new Date().toISOString(),
     });
-    
+
     console.log(`✅ Payment completed for receipt ${args.receiptId} with reference ${args.paymentReference}`);
-    
+
     // Schedule notification
     await scheduleNotification(ctx, args.receiptId, "Paid");
   },
@@ -317,7 +341,7 @@ export const completePayoutInternal = internalMutation({
 
 // Pay/Approve a receipt (instant, no delay - for admin override)
 export const pay = mutation({
-  args: { 
+  args: {
     id: v.id("receipts"),
     approvedBy: v.optional(v.id("users")),
     paymentReference: v.optional(v.string()),
@@ -339,12 +363,15 @@ export const pay = mutation({
     }
 
     await ctx.db.patch(args.id, updates);
+
+    // Schedule notification
+    await scheduleNotification(ctx, args.id, "Paid");
   },
 });
 
 // Approve a receipt (without payment)
 export const approve = mutation({
-  args: { 
+  args: {
     id: v.id("receipts"),
     approvedBy: v.id("users"),
   },
@@ -355,7 +382,7 @@ export const approve = mutation({
       is_flagged: false,
       updatedAt: new Date().toISOString(),
     });
-    
+
     // Schedule notification
     await scheduleNotification(ctx, args.id, "Approved");
   },
@@ -363,24 +390,24 @@ export const approve = mutation({
 
 // Reject a receipt
 export const reject = mutation({
-  args: { 
+  args: {
     id: v.id("receipts"),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const receipt = await ctx.db.get(args.id);
-    
+
     if (!receipt) {
       throw new Error("Receipt not found");
     }
-    
+
     // Only allow rejecting receipts with "Pending Approve" status
     if (receipt.status !== "Pending Approve") {
       throw new Error("Can only reject receipts with 'Pending Approve' status");
     }
-    
+
     const updates = {
-      status: "Flagged",
+      status: "Rejected",
       is_flagged: true,
       is_paid: false,
       updatedAt: new Date().toISOString(),
@@ -392,9 +419,9 @@ export const reject = mutation({
     }
 
     await ctx.db.patch(args.id, updates);
-    
+
     console.log(`✅ Rejected receipt ${args.id}${args.reason ? ` with reason: ${args.reason}` : ''}`);
-    
+
     // Schedule notification
     await scheduleNotification(ctx, args.id, "Flagged", args.reason);
   },
@@ -402,21 +429,21 @@ export const reject = mutation({
 
 // Reopen a flagged claim - change back to pending review
 export const reopenClaim = mutation({
-  args: { 
+  args: {
     id: v.id("receipts"),
   },
   handler: async (ctx, args) => {
     const receipt = await ctx.db.get(args.id);
-    
+
     if (!receipt) {
       throw new Error("Receipt not found");
     }
-    
+
     // Only allow reopening if receipt is flagged
     if (receipt.status !== "Flagged" && !receipt.is_flagged) {
       throw new Error("Can only reopen flagged receipts");
     }
-    
+
     // Reset to pending approval state
     await ctx.db.patch(args.id, {
       status: "Pending Approve",
@@ -424,8 +451,12 @@ export const reopenClaim = mutation({
       flag_reason: undefined, // Clear the flag reason
       updatedAt: new Date().toISOString(),
     });
-    
+
     console.log(`✅ Reopened claim for receipt ${args.id}`);
+
+    // Schedule notification with custom message
+    const formattedAmount = receipt.total_amount.toFixed(2);
+    await scheduleNotification(ctx, args.id, "Pending Approve", `Your receipt for ${receipt.merchant_name} (RM ${formattedAmount}) has been reopened and is pending review.`);
   },
 });
 
@@ -489,7 +520,7 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    
+
     // Filter out undefined values
     const filteredUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, v]) => v !== undefined)
