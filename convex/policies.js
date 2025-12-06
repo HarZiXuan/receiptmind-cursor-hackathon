@@ -13,7 +13,7 @@ export const getActive = query({
   handler: async (ctx) => {
     return await ctx.db
       .query("policies")
-      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .withIndex("by_current", (q) => q.eq("is_current", true))
       .first();
   },
 });
@@ -23,7 +23,7 @@ export const getActiveVersion = query({
   handler: async (ctx) => {
     return await ctx.db
       .query("policies")
-      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .withIndex("by_current", (q) => q.eq("is_current", true))
       .first();
   },
 });
@@ -43,7 +43,7 @@ export const getByVersion = query({
 export const getAllVersions = query({
   handler: async (ctx) => {
     const policies = await ctx.db.query("policies").collect();
-    return policies.sort((a, b) => b.version - a.version);
+    return policies.sort((a, b) => (b.version || 0) - (a.version || 0));
   },
 });
 
@@ -68,19 +68,19 @@ export const save = mutation({
     );
     const nextVersion = maxVersion + 1;
 
-    // If this is the first policy, make it active by default
+    // If this is the first policy, make it current by default
     // Otherwise, new policies are inactive until explicitly activated
     const policyId = await ctx.db.insert("policies", {
       text: args.text,
       summary: args.summary,
       version: nextVersion,
       savedAt: now,
-      isActive: isFirstPolicy,
+      is_current: isFirstPolicy,
       effectiveFrom: isFirstPolicy ? now : undefined,
       createdBy: args.createdBy,
     });
     
-    console.log(`✅ Created policy version ${nextVersion}${isFirstPolicy ? ' (active)' : ''}`);
+    console.log(`✅ Created policy version ${nextVersion}${isFirstPolicy ? ' (current)' : ''}`);
     return policyId;
   },
 });
@@ -89,26 +89,26 @@ export const save = mutation({
 export const deletePolicy = mutation({
   args: { id: v.id("policies") },
   handler: async (ctx, args) => {
-    // Check if the policy being deleted is active (before deleting)
+    // Check if the policy being deleted is current (before deleting)
     const policyToDelete = await ctx.db.get(args.id);
     if (!policyToDelete) {
       return; // Policy doesn't exist
     }
     
-    const wasActive = policyToDelete.isActive;
+    const wasCurrent = policyToDelete.is_current;
     
     // Delete the policy
     await ctx.db.delete(args.id);
     
-    // If we deleted the active policy, set the most recent remaining policy as active
-    if (wasActive) {
+    // If we deleted the current policy, set the most recent remaining policy as current
+    if (wasCurrent) {
       const remainingPolicies = await ctx.db.query("policies").collect();
       if (remainingPolicies.length > 0) {
         // Sort by version and get the highest version
-        const sortedPolicies = remainingPolicies.sort((a, b) => b.version - a.version);
+        const sortedPolicies = remainingPolicies.sort((a, b) => (b.version || 0) - (a.version || 0));
         const mostRecentPolicy = sortedPolicies[0];
         await ctx.db.patch(mostRecentPolicy._id, { 
-          isActive: true,
+          is_current: true,
           effectiveFrom: new Date().toISOString(),
         });
       }
@@ -116,21 +116,21 @@ export const deletePolicy = mutation({
   },
 });
 
-// Set a specific policy version as active
+// Set a specific policy version as current/active
 export const setActive = mutation({
   args: { id: v.id("policies") },
   handler: async (ctx, args) => {
     const now = new Date().toISOString();
     
-    // First, set all policies to inactive
+    // First, set all policies to not current
     const allPolicies = await ctx.db.query("policies").collect();
     for (const policy of allPolicies) {
-      await ctx.db.patch(policy._id, { isActive: false });
+      await ctx.db.patch(policy._id, { is_current: false });
     }
     
-    // Then, set the selected policy as active with effectiveFrom timestamp
+    // Then, set the selected policy as current with effectiveFrom timestamp
     await ctx.db.patch(args.id, { 
-      isActive: true,
+      is_current: true,
       effectiveFrom: now,
     });
   },

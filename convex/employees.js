@@ -43,6 +43,15 @@ export const getByEmail = query({
   },
 });
 
+// Get employee by phone number
+export const getByPhoneNumber = query({
+  args: { phoneNumber: v.string() },
+  handler: async (ctx, args) => {
+    const employees = await ctx.db.query("employees").collect();
+    return employees.find(emp => emp.phoneNumber === args.phoneNumber);
+  },
+});
+
 // Get employee by Convex ID
 export const getById = query({
   args: { id: v.id("employees") },

@@ -183,13 +183,31 @@ export const initializePolicyVersions = mutation({
     });
 
     for (const policy of sortedPolicies) {
+      const updates = {};
+      let needsUpdate = false;
+
+      // Add version if missing
       if (policy.version === undefined || policy.version === null) {
-        await ctx.db.patch(policy._id, {
-          version: version,
-          effectiveFrom: policy.isActive ? policy.savedAt : undefined,
-        });
-        console.log(`✓ Set policy version ${version} (${policy.isActive ? 'active' : 'inactive'})`);
+        updates.version = version;
         version++;
+        needsUpdate = true;
+      }
+
+      // Ensure is_current is set (default to false if missing)
+      if (policy.is_current === undefined || policy.is_current === null) {
+        updates.is_current = false;
+        needsUpdate = true;
+      }
+
+      // Set effectiveFrom for current policies
+      if (policy.is_current && !policy.effectiveFrom) {
+        updates.effectiveFrom = policy.savedAt;
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        await ctx.db.patch(policy._id, updates);
+        console.log(`✓ Updated policy ${updates.version || policy.version} (${policy.is_current ? 'current' : 'inactive'})`);
         updatedCount++;
       }
     }

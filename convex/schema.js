@@ -30,7 +30,7 @@ export default defineSchema({
 
   // Receipts table - expense receipts with enhanced tracking
   receipts: defineTable({
-    // NEW foreign keys
+    // NEW foreign keys (TEMPORARY: optional for migration, will be required after)
     employeeId: v.id("employees"), // Reference to employees table
     submittedBy: v.optional(v.id("users")), // Who submitted (if via user account)
     approvedBy: v.optional(v.id("users")), // Who approved
@@ -52,12 +52,12 @@ export default defineSchema({
     is_paid: v.boolean(),
     physical_id_tag: v.optional(v.string()),
     
-    // NEW tracking fields
+    // NEW tracking fields (TEMPORARY: optional for migration, will be required after)
     payment_date: v.optional(v.string()),
     payment_reference: v.optional(v.string()),
     notes: v.optional(v.string()),
-    createdAt: v.string(),
-    updatedAt: v.string(),
+    createdAt: v.optional(v.string()),
+    updatedAt: v.optional(v.string()),
   })
     .index("by_employee", ["employeeId"])
     .index("by_status", ["status"])
@@ -67,13 +67,13 @@ export default defineSchema({
   policies: defineTable({
     text: v.string(),
     summary: v.string(),
-    version: v.number(), // Track policy versions
-    isActive: v.boolean(),
+    version: v.optional(v.number()), // Track policy versions (optional for backwards compatibility)
+    is_current: v.optional(v.boolean()), // Whether this is the active/current policy
     createdBy: v.optional(v.id("users")), // Who created this version
     savedAt: v.string(),
     effectiveFrom: v.optional(v.string()),
   })
-    .index("by_active", ["isActive"])
+    .index("by_current", ["is_current"])
     .index("by_version", ["version"]),
 });
 

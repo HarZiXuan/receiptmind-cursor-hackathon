@@ -8,8 +8,12 @@
  * @module
  */
 
+import type * as employees from "../employees.js";
+import type * as http from "../http.js";
+import type * as migrations from "../migrations.js";
 import type * as policies from "../policies.js";
 import type * as receipts from "../receipts.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -18,8 +22,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  employees: typeof employees;
+  http: typeof http;
+  migrations: typeof migrations;
   policies: typeof policies;
   receipts: typeof receipts;
+  users: typeof users;
 }>;
 
 /**
