@@ -98,6 +98,16 @@ export const seed = mutation({
   },
 });
 
+export const approve = mutation({
+  args: { id: v.id("receipts") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      status: "Approved",
+      is_flagged: false,
+    });
+  },
+});
+
 export const pay = mutation({
   args: { id: v.id("receipts") },
   handler: async (ctx, args) => {
@@ -116,6 +126,46 @@ export const reject = mutation({
       status: "Pending Approve",
       is_paid: false,
     });
+  },
+});
+
+export const undoApproval = mutation({
+  args: { id: v.id("receipts") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      status: "Pending Approve",
+      is_paid: false,
+    });
+  },
+});
+
+export const reopenClaim = mutation({
+  args: { id: v.id("receipts") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      status: "Pending Approve",
+      is_flagged: false,
+      flag_reason: '',
+    });
+  },
+});
+
+export const sendRejectionNote = mutation({
+  args: { id: v.id("receipts"), note: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    // Mark as rejected - you might want to add a rejection_note field to schema
+    await ctx.db.patch(args.id, {
+      status: "Pending Approve", // Or create a "Rejected" status if needed
+      is_flagged: false,
+    });
+  },
+});
+
+export const archive = mutation({
+  args: { id: v.id("receipts") },
+  handler: async (ctx, args) => {
+    // Delete the receipt from the database
+    await ctx.db.delete(args.id);
   },
 });
 

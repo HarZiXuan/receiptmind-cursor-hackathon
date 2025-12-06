@@ -1,10 +1,61 @@
-import { X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, CreditCard, RotateCcw, FileText, Archive, Send, CheckCircle2, Loader2 } from 'lucide-react';
 import StatusBadge from '../ui/StatusBadge';
 import DetailItem from '../ui/DetailItem';
 import { formatAmount } from '../../utils/formatAmount';
 
-export default function ReceiptDetailModal({ receipt, onClose, onApprove }) {
+export default function ReceiptDetailModal({ 
+  receipt, 
+  onClose,
+  onApprove,
+  onPay,
+  onDirectPay,
+  onUndoApproval,
+  onReopenClaim,
+  onSendRejectionNote,
+  onArchive
+}) {
+  const [countdown, setCountdown] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [hasStartedCountdown, setHasStartedCountdown] = useState(false);
+
+  // Reset countdown when receipt changes or status changes away from Approved
+  useEffect(() => {
+    if (receipt?.status !== 'Approved') {
+      setCountdown(null);
+      setIsProcessing(false);
+      setHasStartedCountdown(false);
+    }
+  }, [receipt?._id, receipt?.status]);
+
+  // Start countdown when status becomes Approved
+  useEffect(() => {
+    if (receipt?.status === 'Approved' && !hasStartedCountdown && countdown === null) {
+      setIsProcessing(true);
+      setHasStartedCountdown(true);
+      setCountdown(30);
+      
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            clearInterval(timer);
+            // Auto-pay after countdown
+            if (onDirectPay && receipt._id) {
+              onDirectPay(receipt._id);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [receipt?.status, receipt?._id, onDirectPay, hasStartedCountdown, countdown]);
+
   if (!receipt) return null;
+
+  const status = receipt.status || '';
 
   return (
     <>
@@ -54,17 +105,79 @@ export default function ReceiptDetailModal({ receipt, onClose, onApprove }) {
           </div>
           
           <div className="p-6 border-t border-gray-200 bg-white">
-            <div className="flex gap-3">
-              <button 
-                onClick={() => onApprove(receipt._id)} 
-                className="flex-1 bg-brand text-white py-3 rounded-xl font-medium hover:bg-blue-800 transition-colors"
-              >
-                Approve & Pay
-              </button>
-              <button className="flex-1 border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors">
-                Reject
-              </button>
-            </div>
+            {status === 'Approved' && (
+              <div className="flex flex-col gap-3">
+                {countdown !== null && countdown > 0 ? (
+                  <div className="w-full bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <Loader2 size={18} className="text-amber-700 animate-spin" />
+                      <p className="text-sm font-medium text-amber-900">Pending money sending...</p>
+                    </div>
+                    <p className="text-2xl font-bold text-amber-700">{countdown}s</p>
+                    <p className="text-xs text-amber-600 mt-1">Payment will be processed automatically</p>
+                  </div>
+                ) : countdown === 0 ? (
+                  <div className="w-full bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                    <p className="text-sm font-medium text-green-700">Processing payment...</p>
+                  </div>
+                ) : null}
+                <button 
+                  onClick={() => onUndoApproval(receipt._id)}
+                  disabled={countdown !== null && countdown > 0}
+                  className="w-full border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RotateCcw size={18} />
+                  Undo Approval
+                </button>
+              </div>
+            )}
+
+            {status === 'Flagged' && (
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => onReopenClaim(receipt._id)}
+                  className="w-full bg-brand text-white py-3 rounded-xl font-medium hover:bg-blue-800 transition-colors flex items-center justify-center gap-2"
+                >
+                  <FileText size={18} />
+                  Reopen Claim
+                </button>
+                <button 
+                  onClick={() => onSendRejectionNote(receipt._id)}
+                  className="w-full border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Send size={18} />
+                  Send Rejection Note
+                </button>
+                <button 
+                  onClick={() => onArchive(receipt._id)}
+                  className="w-full border border-red-200 text-red-700 py-3 rounded-xl font-medium hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Archive size={18} />
+                  Archive
+                </button>
+              </div>
+            )}
+
+            {status === 'Paid' && (
+              <div className="text-center py-4 text-gray-500 text-sm">
+                No actions available for paid receipts
+              </div>
+            )}
+
+            {status === 'Pending Approve' && (
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => onPay(receipt._id)} 
+                  className="flex-1 bg-brand text-white py-3 rounded-xl font-medium hover:bg-blue-800 transition-colors flex items-center justify-center gap-2"
+                >
+                  <CreditCard size={18} />
+                  Pay via Ryt Bank
+                </button>
+                <button className="flex-1 border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                  Reject
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

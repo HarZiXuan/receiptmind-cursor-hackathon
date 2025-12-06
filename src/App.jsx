@@ -4,6 +4,7 @@ import Header from './components/navigation/Header';
 import Dashboard from './pages/Dashboard';
 import Policy from './pages/Policy';
 import LiveClaims from './pages/LiveClaims';
+import ManageEmployee from './pages/ManageEmployee';
 import Settings from './pages/Settings';
 
 export default function App() {
@@ -18,6 +19,8 @@ export default function App() {
         return <Policy />;
       case 'Live Claims':
         return <LiveClaims />;
+      case 'Manage Employee':
+        return <ManageEmployee />;
       case 'Settings':
         return <Settings />;
       default:

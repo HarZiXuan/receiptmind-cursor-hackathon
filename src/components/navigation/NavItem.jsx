@@ -2,7 +2,8 @@ import {
   LayoutDashboard, 
   FileText, 
   Settings, 
-  Activity 
+  Activity,
+  Users
 } from 'lucide-react';
 
 const iconMap = {
@@ -10,6 +11,7 @@ const iconMap = {
   FileText,
   Settings,
   Activity,
+  Users,
 };
 
 export default function NavItem({ icon, label, isActive, isOpen, onClick }) {

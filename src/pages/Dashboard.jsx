@@ -17,7 +17,6 @@ export default function Dashboard() {
   const isLoading = receiptsData === undefined;
   
   const seed = useMutation(api.receipts.seed);
-  const payMutation = useMutation(api.receipts.pay);
 
   // Log connection status
   useEffect(() => {
@@ -25,10 +24,13 @@ export default function Dashboard() {
       console.log('📊 Convex Connection Status:', {
         connected: receiptsData !== undefined,
         receiptCount: receipts.length,
-        hasData: receipts.length > 0
+        hasData: receipts.length > 0,
+        rawData: receiptsData?.length || 0
       });
       if (receipts.length === 0) {
         console.log('⚠️ No receipts found. Click "Seed Data" button to populate the database.');
+      } else {
+        console.log('✅ Receipts loaded:', receipts.length, 'total receipts from database');
       }
     }
   }, [isLoading, receiptsData, receipts.length]);
@@ -38,6 +40,8 @@ export default function Dashboard() {
   const [selectedId, setSelectedId] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'receipt_date', direction: 'desc' });
   const [dateRange, setDateRange] = useState({ start: null, end: null });
+  const [rowLimit, setRowLimit] = useState(10);
+  const [showAll, setShowAll] = useState(true); // Default to showing all rows
 
   const filteredReceipts = useMemo(() => {
     if (!receipts || receipts.length === 0) {
@@ -128,6 +132,20 @@ export default function Dashboard() {
       });
     }
     
+    // Debug logging to track filtering
+    console.log('🔍 Receipt Filtering:', {
+      totalReceipts: receipts.length,
+      filteredCount: filtered.length,
+      searchQuery,
+      statusFilter,
+      dateRange: dateRange.start && dateRange.end ? `${dateRange.start.toLocaleDateString()} - ${dateRange.end.toLocaleDateString()}` : 'No date filter',
+      filtersApplied: {
+        search: searchQuery.length > 0,
+        status: statusFilter !== 'ALL',
+        date: dateRange.start && dateRange.end
+      }
+    });
+    
     return filtered;
   }, [receipts, searchQuery, statusFilter, dateRange]);
 
@@ -201,12 +219,82 @@ export default function Dashboard() {
     }));
   };
 
+  const approveMutation = useMutation(api.receipts.approve);
+  const payMutation = useMutation(api.receipts.pay);
+  const undoApprovalMutation = useMutation(api.receipts.undoApproval);
+  const reopenClaimMutation = useMutation(api.receipts.reopenClaim);
+  const sendRejectionNoteMutation = useMutation(api.receipts.sendRejectionNote);
+  const archiveMutation = useMutation(api.receipts.archive);
+
+  const handleApprove = async (id) => {
+    try {
+      await approveMutation({ id });
+      setSelectedId(null);
+    } catch (error) {
+      console.error('Failed to approve receipt:', error);
+    }
+  };
+
   const handlePay = async (id) => {
+    try {
+      console.log('🔄 Starting payment flow for receipt:', id);
+      // First approve the receipt, then countdown will handle payment
+      await approveMutation({ id });
+      console.log('✅ Receipt approved, countdown should start');
+      // Don't close modal - let countdown run
+      // The receipt status will update via Convex query, triggering countdown
+    } catch (error) {
+      console.error('❌ Failed to approve receipt:', error);
+    }
+  };
+
+  const handleDirectPay = async (id) => {
     try {
       await payMutation({ id });
       setSelectedId(null);
     } catch (error) {
-      console.error('Failed to approve payment:', error);
+      console.error('Failed to process payment:', error);
+    }
+  };
+
+  const handleUndoApproval = async (id) => {
+    try {
+      await undoApprovalMutation({ id });
+      setSelectedId(null);
+    } catch (error) {
+      console.error('Failed to undo approval:', error);
+    }
+  };
+
+  const handleReopenClaim = async (id) => {
+    try {
+      await reopenClaimMutation({ id });
+      setSelectedId(null);
+    } catch (error) {
+      console.error('Failed to reopen claim:', error);
+    }
+  };
+
+  const handleSendRejectionNote = async (id) => {
+    try {
+      const note = prompt('Enter rejection note:');
+      if (note !== null) {
+        await sendRejectionNoteMutation({ id, note });
+        setSelectedId(null);
+      }
+    } catch (error) {
+      console.error('Failed to send rejection note:', error);
+    }
+  };
+
+  const handleArchive = async (id) => {
+    if (window.confirm('Are you sure you want to archive this receipt? This action cannot be undone.')) {
+      try {
+        await archiveMutation({ id });
+        setSelectedId(null);
+      } catch (error) {
+        console.error('Failed to archive receipt:', error);
+      }
     }
   };
 
@@ -224,6 +312,22 @@ export default function Dashboard() {
   const selected = useMemo(() => 
     receipts.find(r => r._id === selectedId) || null, 
   [receipts, selectedId]);
+
+  // Ensure analytics is always defined
+  const safeAnalytics = analytics || { total: 0, count: 0, graphPoints: [] };
+  const safeFilteredReceipts = filteredReceipts || [];
+  const safeSortedReceipts = sortedReceipts || [];
+  
+  // Paginated receipts for table display - MUST be before any early returns
+  const displayedReceipts = useMemo(() => {
+    if (!safeSortedReceipts || safeSortedReceipts.length === 0) {
+      return [];
+    }
+    if (showAll) {
+      return safeSortedReceipts;
+    }
+    return safeSortedReceipts.slice(0, rowLimit || 10);
+  }, [safeSortedReceipts, rowLimit, showAll]);
 
   // Show loading state
   if (isLoading) {
@@ -272,11 +376,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  // Ensure analytics is always defined
-  const safeAnalytics = analytics || { total: 0, count: 0, graphPoints: [] };
-  const safeFilteredReceipts = filteredReceipts || [];
-  const safeSortedReceipts = sortedReceipts || [];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -507,6 +606,52 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-card">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600">Show:</span>
+            <select
+              value={showAll ? 'all' : rowLimit}
+              onChange={(e) => {
+                if (e.target.value === 'all') {
+                  setShowAll(true);
+                } else {
+                  setShowAll(false);
+                  setRowLimit(Number(e.target.value));
+                }
+              }}
+              className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand"
+            >
+              <option value="10">10 rows</option>
+              <option value="50">50 rows</option>
+              <option value="100">100 rows</option>
+              <option value="all">All rows</option>
+            </select>
+            <span className="text-sm text-gray-500">
+              Showing {displayedReceipts?.length || 0} of {safeSortedReceipts?.length || 0} transactions
+            </span>
+          </div>
+          {!showAll && safeSortedReceipts && safeSortedReceipts.length > (rowLimit || 10) && (
+            <button
+              onClick={() => setShowAll(true)}
+              className="px-4 py-2 bg-brand text-white rounded-lg text-sm font-medium hover:bg-blue-800 transition-colors"
+            >
+              Show All ({safeSortedReceipts.length})
+            </button>
+          )}
+          {showAll && (
+            <button
+              onClick={() => {
+                setShowAll(false);
+                setRowLimit(10);
+              }}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              Show 10
+            </button>
+          )}
+        </div>
+
         <div className="bg-white rounded-xl border border-gray-200 shadow-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -520,28 +665,31 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {safeSortedReceipts.map((r) => (
-                  <tr 
-                    key={r._id} 
-                    className="hover:bg-gray-50 transition-colors cursor-pointer group"
-                    onClick={() => setSelectedId(r._id)}
-                  >
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {r.merchant_name}
-                      <div className="text-xs text-gray-500 font-normal mt-0.5">{r.category}</div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{r.receipt_date}</td>
-                    <td className="px-6 py-4 text-gray-600">{r.employee_name}</td>
-                    <td className="px-6 py-4 font-medium">{formatAmount(r.total_amount)}</td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={r.status} isFlagged={r.is_flagged} />
-                    </td>
-                  </tr>
-                ))}
+                {(displayedReceipts || []).map((r) => {
+                  if (!r) return null;
+                  return (
+                    <tr 
+                      key={r._id} 
+                      className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                      onClick={() => setSelectedId(r._id)}
+                    >
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        {r.merchant_name}
+                        <div className="text-xs text-gray-500 font-normal mt-0.5">{r.category}</div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">{r.receipt_date}</td>
+                      <td className="px-6 py-4 text-gray-600">{r.employee_name}</td>
+                      <td className="px-6 py-4 font-medium">{formatAmount(r.total_amount)}</td>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={r.status} isFlagged={r.is_flagged} />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          {safeSortedReceipts.length === 0 && (
+          {(!displayedReceipts || displayedReceipts.length === 0) && (!safeSortedReceipts || safeSortedReceipts.length === 0) && (
             <div className="p-12 text-center text-gray-500">
               {receipts.length === 0 ? (
                 <>
@@ -579,10 +727,16 @@ export default function Dashboard() {
 
       {/* Receipt Detail Modal */}
       {selected && (
-        <ReceiptDetailModal 
+        <ReceiptDetailModal
           receipt={selected} 
-          onClose={() => setSelectedId(null)} 
-          onApprove={handlePay}
+          onClose={() => setSelectedId(null)}
+          onApprove={handleApprove}
+          onPay={handlePay}
+          onDirectPay={handleDirectPay}
+          onUndoApproval={handleUndoApproval}
+          onReopenClaim={handleReopenClaim}
+          onSendRejectionNote={handleSendRejectionNote}
+          onArchive={handleArchive}
         />
       )}
     </div>
