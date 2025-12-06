@@ -4,7 +4,6 @@ import NavItem from './NavItem';
 export default function Sidebar({ isOpen, activeTab, onTabChange, onToggle }) {
   const navItems = [
     { id: 'Dashboard', icon: 'LayoutDashboard', label: 'Home' },
-    { id: 'Live Claims', icon: 'Activity', label: 'Live Claims' },
     { id: 'Policy', icon: 'FileText', label: 'Policy' },
     { id: 'Manage Employee', icon: 'Users', label: 'Manage Employee' },
     { id: 'Settings', icon: 'Settings', label: 'Settings' },

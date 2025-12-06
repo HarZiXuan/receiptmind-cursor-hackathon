@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { Search, Plus, Activity, CheckCircle2, AlertCircle, Clock, DollarSign } from 'lucide-react';
+import { Search, Plus, Activity, CheckCircle2, AlertCircle, Clock, DollarSign, BarChart3 } from 'lucide-react';
 import LineChart from '../components/charts/LineChart';
+import BarChart from '../components/charts/BarChart';
 import PieChart from '../components/charts/PieChart';
 import ActionButton from '../components/ui/ActionButton';
 import StatRow from '../components/ui/StatRow';
@@ -37,12 +38,13 @@ export default function Dashboard() {
   }, [isLoading, receiptsData, receipts.length]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('Paid');
   const [selectedId, setSelectedId] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'receipt_date', direction: 'desc' });
   const [dateRange, setDateRange] = useState({ start: null, end: null });
   const [rowLimit, setRowLimit] = useState(10);
   const [showAll, setShowAll] = useState(true); // Default to showing all rows
+  const [chartType, setChartType] = useState('line'); // 'line' or 'bar'
 
   const filteredReceipts = useMemo(() => {
     if (!receipts || receipts.length === 0) {
@@ -409,28 +411,81 @@ export default function Dashboard() {
 
       {/* Analytics Cards Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Graph Card */}
+      {/* Main Graph Card */}
         <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-card flex flex-col">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-sm font-medium text-gray-500">Total Claimed</p>
+              <p className="text-sm font-medium text-gray-500">
+                {statusFilter === 'Flagged' ? 'Total Flagged Amount' : 
+                 statusFilter === 'Pending Approve' ? 'Pending Approval Amount' : 
+                 'Total Amount'}
+              </p>
               <div className="flex items-baseline gap-2">
                 <h2 className="text-3xl font-semibold text-gray-900">{formatAmount(safeAnalytics.total)}</h2>
-                <span className="text-sm font-medium text-red-500">-2.55%</span>
+                {statusFilter === 'ALL' && <span className="text-sm font-medium text-red-500">-2.55%</span>}
               </div>
             </div>
             <div className="flex gap-1">
-              <button className="p-1.5 rounded hover:bg-gray-100 text-gray-900">
-                <Activity size={18}/>
-              </button>
+              {statusFilter !== 'Flagged' && statusFilter !== 'Pending Approve' ? (
+                <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                  <button 
+                    onClick={() => setChartType('line')}
+                    className={`p-1.5 rounded transition-all ${chartType === 'line' ? 'bg-white text-brand shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                    title="Line Chart"
+                  >
+                    <Activity size={18}/>
+                  </button>
+                  <button 
+                    onClick={() => setChartType('bar')}
+                    className={`p-1.5 rounded transition-all ${chartType === 'bar' ? 'bg-white text-brand shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                    title="Bar Chart"
+                  >
+                    <BarChart3 size={18}/>
+                  </button>
+                </div>
+              ) : statusFilter === 'Pending Approve' ? (
+                 <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-center gap-1 text-xs font-medium text-brand">
+                       <BarChart3 size={14}/>
+                       <span>Bar View</span>
+                    </div>
+                 </div>
+              ) : null}
             </div>
           </div>
-          <div className="h-48 w-full">
-            <LineChart 
-              data={safeAnalytics.graphPoints || []} 
-              minDate={availableDateRange.minDate}
-              maxDate={availableDateRange.maxDate}
-            />
+          <div className="h-72 w-full">
+            {statusFilter === 'Flagged' ? (
+              <div className="h-full grid grid-cols-2 gap-6">
+                <div className="bg-red-50 rounded-xl p-5 flex flex-col justify-center border border-red-100 relative overflow-hidden group">
+                   <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <AlertCircle size={60} className="text-red-600" />
+                   </div>
+                   <p className="text-sm font-medium text-red-700 mb-1">Flagged Receipts</p>
+                   <p className="text-3xl font-bold text-gray-900">{safeAnalytics.count}</p>
+                   <p className="text-xs text-red-600 mt-2 font-medium">Action Required</p>
+                </div>
+                <div className="bg-red-50 rounded-xl p-5 flex flex-col justify-center border border-red-100 relative overflow-hidden group">
+                   <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <DollarSign size={60} className="text-red-600" />
+                   </div>
+                   <p className="text-sm font-medium text-red-700 mb-1">Total Flagged</p>
+                   <p className="text-3xl font-bold text-gray-900">{formatAmount(safeAnalytics.total)}</p>
+                   <p className="text-xs text-red-600 mt-2 font-medium">Requires Review</p>
+                </div>
+              </div>
+            ) : (statusFilter === 'Pending Approve' || chartType === 'bar') ? (
+              <BarChart 
+                data={safeAnalytics.graphPoints || []} 
+                minDate={availableDateRange.minDate}
+                maxDate={availableDateRange.maxDate}
+              />
+            ) : (
+              <LineChart 
+                data={safeAnalytics.graphPoints || []} 
+                minDate={availableDateRange.minDate}
+                maxDate={availableDateRange.maxDate}
+              />
+            )}
           </div>
         </div>
 
@@ -438,21 +493,16 @@ export default function Dashboard() {
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-card flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-gray-900">All Status</h3>
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-              <button className="px-3 py-1 text-xs font-medium bg-white text-gray-900 shadow-sm rounded-md">Categories</button>
-              <button className="px-3 py-1 text-xs font-medium text-gray-500 hover:text-gray-900 rounded-md">Groups</button>
-            </div>
           </div>
           <div className="flex-1">
             <PieChart 
               data={[
                 { label: 'Pending Approve', color: '#f59e0b', amount: receipts.filter(r => r?.status === 'Pending Approve').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
-                { label: 'Approved', color: '#10b981', amount: receipts.filter(r => r?.status === 'Approved').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
                 { label: 'Flagged', color: '#ef4444', amount: receipts.filter(r => r?.status === 'Flagged').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
                 { label: 'Paid', color: '#8b5cf6', amount: receipts.filter(r => r?.status === 'Paid').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
               ].filter(d => d.amount > 0)} 
-              totalAmount={receipts.reduce((s, r) => s + Number(r.total_amount || 0), 0)}
-              onStatusSelect={(label) => setStatusFilter(label === statusFilter ? 'ALL' : label)}
+              totalAmount={receipts.filter(r => ['Pending Approve', 'Flagged', 'Paid'].includes(r?.status)).reduce((s, r) => s + Number(r.total_amount || 0), 0)}
+              onStatusSelect={(label) => setStatusFilter(label)}
               selectedStatus={statusFilter}
             />
           </div>
@@ -479,11 +529,9 @@ export default function Dashboard() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand"
             >
-              <option value="ALL">All Status</option>
-              <option value="Pending Approve">Pending Approve</option>
-              <option value="Approved">Approved</option>
-              <option value="Flagged">Flagged</option>
               <option value="Paid">Paid</option>
+              <option value="Pending Approve">Pending Approve</option>
+              <option value="Flagged">Flagged</option>
             </select>
           </div>
         </div>

@@ -1,9 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { formatAmount } from '../../utils/formatAmount';
 
 export default function PieChart({ data, totalAmount, onStatusSelect, selectedStatus }) {
   // data should be an array of { label, value, color, count, amount }
   // totalAmount is the sum of all amounts
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    // Trigger animation slightly after mount
+    setTimeout(() => setIsLoaded(true), 100);
+  }, []);
 
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
@@ -22,41 +28,6 @@ export default function PieChart({ data, totalAmount, onStatusSelect, selectedSt
     });
   }, [data, totalAmount]);
 
-  const getCoordinatesForPercent = (percent) => {
-    const x = Math.cos(2 * Math.PI * percent);
-    const y = Math.sin(2 * Math.PI * percent);
-    return [x, y];
-  };
-
-  const getPath = (startPercent, endPercent) => {
-    // Adjust to start from top (subtract 0.25)
-    const start = startPercent - 0.25;
-    const end = endPercent - 0.25;
-
-    const [startX, startY] = getCoordinatesForPercent(start);
-    const [endX, endY] = getCoordinatesForPercent(end);
-
-    const largeArcFlag = endPercent - startPercent > 0.5 ? 1 : 0;
-
-    // Path for a donut slice
-    // Move to start outer
-    // Arc to end outer
-    // Line to end inner
-    // Arc to start inner
-    // Close path
-    
-    // We'll use stroke-dasharray on a circle for simplicity in SVG, 
-    // but for precise segments with gaps (like the image), separate paths are better.
-    // Let's stick to simple circle segments using stroke-dasharray for the donut look.
-    // Actually, creating paths allows for interactivity (hover/click).
-    
-    return [
-      `M ${startX} ${startY}`, // Move to start
-      `A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY}`, // Arc to end
-      `L 0 0`, // Line to center (we will mask the center to make it a donut)
-    ].join(' ');
-  };
-
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
@@ -64,30 +35,20 @@ export default function PieChart({ data, totalAmount, onStatusSelect, selectedSt
       </div>
     );
   }
-
-  // Sort data so larger segments are rendered nicely if needed, 
-  // but preserving order is usually better for legend matching.
   
+  // Find the selected item's amount if one is selected
+  const selectedItem = selectedStatus !== 'ALL' ? data.find(d => d.label === selectedStatus) : null;
+  const displayAmount = selectedItem ? selectedItem.amount : null;
+
   return (
     <div className="flex flex-col h-full">
       <div className="relative flex-1 min-h-[200px] flex items-center justify-center">
         <svg viewBox="-1.2 -1.2 2.4 2.4" className="w-full h-full max-w-[240px] transform -rotate-90">
           {chartData.map((slice, i) => {
-            // Calculate dash array for circle method
-            // Circumference = 2 * PI * r. Let r=1. C ≈ 6.283
-            // Dash = [length, gap]
-            // length = percent * C
-            // gap = C - length
-            // offset = - (startPercent * C)
-            
             const r = 1;
             const C = 2 * Math.PI * r;
             const length = (slice.percent * C) - 0.05; // Subtract a bit for gap
             const safeLength = Math.max(0, length);
-            const offset = -(slice.startPercent * C); // Negative because dashoffset moves start point counter-clockwise? No, standard is clockwise from 3 o'clock.
-            // Rotated svg -90deg makes 3 o'clock become 12 o'clock.
-            
-            // Wait, using stroke-dasharray on a circle is easier for the "gap" look.
             
             return (
               <circle
@@ -99,11 +60,12 @@ export default function PieChart({ data, totalAmount, onStatusSelect, selectedSt
                 stroke={slice.color}
                 strokeWidth="0.4" // Thickness of the donut
                 strokeDasharray={`${safeLength} ${C - safeLength}`}
-                strokeDashoffset={- (slice.startPercent * C)}
-                className="transition-all duration-300 cursor-pointer hover:opacity-80"
+                strokeDashoffset={isLoaded ? - (slice.startPercent * C) : C} // Start completely dashed/hidden if not loaded
+                className="transition-all duration-1000 ease-out cursor-pointer hover:opacity-80"
                 onClick={() => onStatusSelect(slice.label)}
                 style={{
-                  opacity: selectedStatus === 'ALL' || selectedStatus === slice.label ? 1 : 0.3
+                  opacity: selectedStatus === 'ALL' || selectedStatus === slice.label ? 1 : 0.3,
+                  transitionProperty: 'stroke-dashoffset, opacity'
                 }}
               />
             );
@@ -112,8 +74,17 @@ export default function PieChart({ data, totalAmount, onStatusSelect, selectedSt
         
         {/* Center Text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-xs text-gray-500 font-medium">Total Spending</p>
-          <p className="text-xl font-bold text-gray-900">{formatAmount(totalAmount)}</p>
+          {selectedStatus === 'ALL' ? (
+             <>
+               <p className="text-xs text-gray-500 font-medium">All Status</p>
+               {/* Removed combined total as requested */}
+             </>
+          ) : (
+             <>
+               <p className="text-xs text-gray-500 font-medium">{selectedStatus}</p>
+               <p className="text-xl font-bold text-gray-900">{formatAmount(displayAmount || 0)}</p>
+             </>
+          )}
         </div>
       </div>
 
@@ -140,4 +111,3 @@ export default function PieChart({ data, totalAmount, onStatusSelect, selectedSt
     </div>
   );
 }
-

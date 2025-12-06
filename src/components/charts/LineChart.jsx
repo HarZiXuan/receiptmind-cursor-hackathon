@@ -1,31 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { ZoomIn, ZoomOut } from 'lucide-react';
 import { formatAmount } from '../../utils/formatAmount';
 
-const LINE_COLOR = "#1A4D2E";
-const MIN_ZOOM = 1; // Show all data
-const MAX_ZOOM = 10; // Show very focused view
-const ZOOM_STEP = 0.5;
+const LINE_COLOR = "#0000E6";
 
 export default function LineChart({ data, minDate, maxDate }) {
   // ALL HOOKS MUST BE CALLED FIRST - before any conditional returns
   const [hoveredData, setHoveredData] = useState(null);
   const [hoverX, setHoverX] = useState(null);
-  const [zoomLevel, setZoomLevel] = useState(1); // 1 = show all, higher = zoomed in
   const [scrollPosition, setScrollPosition] = useState(0);
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
   const scrollRef = useRef(null);
-
-  // Update scroll position when zoom changes
-  useEffect(() => {
-    if (scrollRef.current && zoomLevel > MIN_ZOOM) {
-      const container = scrollRef.current;
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      const newScroll = scrollPosition * maxScroll;
-      container.scrollLeft = newScroll;
-    }
-  }, [zoomLevel, scrollPosition]);
 
   // NOW we can do conditional returns after all hooks
   if (!data || data.length === 0) {
@@ -44,20 +29,15 @@ export default function LineChart({ data, minDate, maxDate }) {
     );
   }
 
-  // Calculate visible data range based on zoom
-  const totalDataPoints = data.length;
-  const visibleDataPoints = Math.max(1, Math.ceil(totalDataPoints / zoomLevel));
-  const maxScrollRange = Math.max(0, totalDataPoints - visibleDataPoints);
-  const startIndex = Math.max(0, Math.floor(scrollPosition * maxScrollRange));
-  const endIndex = Math.min(startIndex + visibleDataPoints, totalDataPoints);
-  const visibleData = data.slice(startIndex, endIndex);
+  // Use all data without zooming logic
+  const visibleData = data;
   
   // Ensure we have at least one data point
   if (visibleData.length === 0 && data.length > 0) {
     visibleData.push(data[0]);
   }
 
-  const maxVal = Math.max(...visibleData.map(d => d.amount)) * 1.1 || 100;
+  const maxVal = Math.max(...visibleData.map(d => d.amount)) * 1.3 || 100;
   
   const getPath = (points) => {
     if (points.length === 0) return "";
@@ -77,8 +57,7 @@ export default function LineChart({ data, minDate, maxDate }) {
     return d;
   };
 
-  // Calculate width multiplier based on zoom (zoomed in = wider chart)
-  const chartWidth = zoomLevel * 100; // Base 100%, multiply by zoom level
+  const chartWidth = 100; // Always 100%
 
   const pointCoords = visibleData.map((d, i) => ({
     x: (i / (visibleData.length - 1 || 1)) * 100,
@@ -88,35 +67,12 @@ export default function LineChart({ data, minDate, maxDate }) {
 
   const pathD = getPath(pointCoords);
 
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
-  };
-
-  const handleZoomOut = () => {
-    const newZoom = Math.max(zoomLevel - ZOOM_STEP, MIN_ZOOM);
-    setZoomLevel(newZoom);
-    // Reset scroll position if zoomed out to show all
-    if (newZoom === MIN_ZOOM) {
-      setScrollPosition(0);
-    }
-  };
-
-  const handleScroll = (e) => {
-    if (!scrollRef.current) return;
-    const container = scrollRef.current;
-    const scrollLeft = container.scrollLeft;
-    const maxScroll = container.scrollWidth - container.clientWidth;
-    const normalizedScroll = maxScroll > 0 ? scrollLeft / maxScroll : 0;
-    setScrollPosition(normalizedScroll);
-  };
-
   const handleMouseMove = (e) => {
-    if (!chartRef.current || !scrollRef.current) return;
-    const containerRect = scrollRef.current.getBoundingClientRect();
+    if (!chartRef.current) return;
     const chartRect = chartRef.current.getBoundingClientRect();
     
-    // Calculate mouse position relative to the scrolled chart
-    const x = e.clientX - chartRect.left + scrollRef.current.scrollLeft;
+    // Calculate mouse position relative to the chart element
+    const x = e.clientX - chartRect.left;
     const chartWidth = chartRef.current.scrollWidth;
     
     const index = Math.round((x / chartWidth) * (visibleData.length - 1));
@@ -138,47 +94,25 @@ export default function LineChart({ data, minDate, maxDate }) {
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      {/* Zoom Controls */}
-      <div className="flex items-center gap-2 mb-2 justify-end">
-        <button
-          onClick={handleZoomOut}
-          disabled={zoomLevel <= MIN_ZOOM}
-          className="p-1.5 rounded hover:bg-gray-100 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Zoom Out"
-        >
-          <ZoomOut size={16} />
-        </button>
-        <span className="text-xs text-gray-500 min-w-[60px] text-center">
-          {Math.round(zoomLevel * 100)}%
-        </span>
-        <button
-          onClick={handleZoomIn}
-          disabled={zoomLevel >= MAX_ZOOM}
-          className="p-1.5 rounded hover:bg-gray-100 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Zoom In"
-        >
-          <ZoomIn size={16} />
-        </button>
-      </div>
-
-      {/* Scrollable Chart Container */}
+      <style>{`
+        @keyframes drawLine {
+          from { stroke-dashoffset: 1000; opacity: 0; }
+          to { stroke-dashoffset: 0; opacity: 1; }
+        }
+        .line-animation {
+          stroke-dasharray: 1000;
+          stroke-dashoffset: 0;
+          animation: drawLine 2s ease-out forwards;
+        }
+      `}</style>
+      
+      {/* Chart Container - Scroll Logic Removed */}
       <div
-        ref={scrollRef}
-        className="flex-1 overflow-x-auto overflow-y-hidden chart-scrollbar"
-        onScroll={handleScroll}
-        style={{ 
-          scrollbarWidth: 'thin',
-          scrollbarColor: '#D1D5DB #F3F4F6'
-        }}
+        className="flex-1 overflow-hidden pb-6" // Keep padding for labels
       >
         <div 
           ref={chartRef}
-          className="relative cursor-crosshair"
-          style={{ 
-            width: `${chartWidth}%`,
-            minWidth: '100%',
-            height: '100%'
-          }}
+          className="relative cursor-crosshair w-full h-full"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
         >
@@ -196,6 +130,7 @@ export default function LineChart({ data, minDate, maxDate }) {
               vectorEffect="non-scaling-stroke" 
               strokeLinecap="round"
               strokeLinejoin="round"
+              className="line-animation"
             />
             
             {hoverX !== null && (
@@ -225,15 +160,22 @@ export default function LineChart({ data, minDate, maxDate }) {
             )}
           </svg>
 
-          {/* Date Labels */}
-          <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] text-gray-400 mt-2 select-none px-1">
+          {/* Date Labels - pushed down */}
+          <div className="absolute bottom-[-20px] left-0 right-0 flex justify-between text-[10px] text-gray-400 mt-4 select-none px-1">
             <span>{visibleData[0]?.date || minDate || data[0]?.date}</span>
+            {visibleData.length > 4 && (
+              <>
+                <span>{visibleData[Math.floor(visibleData.length * 0.25)]?.date}</span>
+                <span>{visibleData[Math.floor(visibleData.length * 0.5)]?.date}</span>
+                <span>{visibleData[Math.floor(visibleData.length * 0.75)]?.date}</span>
+              </>
+            )}
             <span>{visibleData[visibleData.length - 1]?.date || maxDate || data[data.length - 1]?.date}</span>
           </div>
         </div>
       </div>
 
-      {/* Tooltip - positioned inside scrollable container */}
+      {/* Tooltip */}
       {hoveredData && hoverX !== null && chartRef.current && (
         <div 
           className="absolute bg-white text-gray-900 text-xs rounded-md py-1.5 px-3 shadow-xl border border-gray-200 pointer-events-none z-10"

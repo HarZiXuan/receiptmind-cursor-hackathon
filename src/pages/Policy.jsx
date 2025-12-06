@@ -60,21 +60,21 @@ export default function Policy() {
     }
   };
 
-  const activePolicy = policies.find(p => p.isActive) || policies[0]; // Fallback to first if none marked active
+  const activePolicy = policies.find(p => p.is_current) || policies[0]; // Fallback to first if none marked active
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="h-[calc(100vh-2rem)] flex flex-col animate-fade-in">
+      <div className="flex items-center justify-between mb-6 flex-shrink-0">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Policy Management</h1>
           <p className="text-gray-500 mt-1">Upload and manage your company policies</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Upload Policy Text */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-card p-6 flex flex-col">
-          <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-1 gap-6 overflow-hidden">
+        {/* Left: Upload Policy Text - Fixed/Non-scrollable container */}
+        <div className="w-1/2 bg-white rounded-xl border border-gray-200 shadow-card p-6 flex flex-col h-full">
+          <div className="flex items-center gap-3 mb-4 flex-shrink-0">
             <div className="w-10 h-10 bg-brand/10 rounded-full flex items-center justify-center">
               <Upload size={20} className="text-brand" />
             </div>
@@ -84,22 +84,22 @@ export default function Policy() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 mb-4">
               <textarea
                 value={policyText}
                 onChange={(e) => setPolicyText(e.target.value)}
-                placeholder="Paste or type your company policy here...
+                placeholder={`Paste or type your company policy here...
 
 Example:
 - Meal expenses are capped at RM 200 per person
 - Receipts must be submitted within 7 days
-- Alcohol expenses require manager approval..."
-                className="w-full h-full min-h-[400px] p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400"
+- Alcohol expenses require manager approval...`}
+                className="w-full h-full p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400"
               />
             </div>
 
-            <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <div className="flex gap-3 pt-4 border-t border-gray-200 flex-shrink-0">
               <button
                 type="submit"
                 disabled={!policyText.trim() || isSubmitting}
@@ -120,9 +120,9 @@ Example:
           </form>
         </div>
 
-        {/* Right: Current Policies List */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-card p-6 flex flex-col">
-          <div className="flex items-center gap-3 mb-4">
+        {/* Right: Current Policies List - Scrollable */}
+        <div className="w-1/2 bg-white rounded-xl border border-gray-200 shadow-card p-6 flex flex-col h-full">
+          <div className="flex items-center gap-3 mb-4 flex-shrink-0">
             <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
               <FileText size={20} className="text-gray-600" />
             </div>
@@ -134,7 +134,7 @@ Example:
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-4">
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
             {policies.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-12">
                 <FileText size={48} className="text-gray-300 mb-4" />
@@ -143,7 +143,7 @@ Example:
               </div>
             ) : (
               policies.map((policy) => {
-                const isActive = policy.isActive || (activePolicy?._id === policy._id);
+                const isActive = policy.is_current || (activePolicy?._id === policy._id);
                 const isDeleting = deletingId === policy._id;
                 
                 return (
