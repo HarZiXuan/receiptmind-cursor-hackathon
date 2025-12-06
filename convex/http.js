@@ -325,5 +325,62 @@ http.route({
   }),
 });
 
+// 5. GET /employee/claims?employeeId=... - Get employee claims aggregated by category
+http.route({
+  path: "/employee/claims",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    // Validate bearer token
+    const auth = await validateBearerToken(request);
+    if (!auth.valid) {
+      return new Response(JSON.stringify({ error: auth.error }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Get employeeId from query params
+    const url = new URL(request.url);
+    const employeeId = url.searchParams.get("employeeId");
+    
+    if (!employeeId) {
+      return new Response(JSON.stringify({ 
+        error: "Missing employeeId query parameter" 
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify employee exists
+    const employee = await ctx.runQuery(api.employees.getById, { id: employeeId });
+    
+    if (!employee) {
+      return new Response(JSON.stringify({ 
+        error: "Employee not found with provided employee ID" 
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Get claims aggregated by category
+    const claims = await ctx.runQuery(api.receipts.getEmployeeClaimsByCategory, { employeeId });
+
+    return new Response(JSON.stringify({ 
+      success: true,
+      employeeId: employee._id,
+      employee: {
+        name: employee.name,
+        employeeId: employee.employeeId,
+      },
+      claims,
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }),
+});
+
 export default http;
 

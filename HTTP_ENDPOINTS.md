@@ -212,3 +212,59 @@ curl -X GET "$convexBaseURL/employee?phoneNumber=012345678" \
   { "error": "Employee not found with provided phone number" }
   ```
 - **401 Unauthorized:** Invalid bearer token
+
+---
+
+### 5. GET /employee/claims - Get Employee Claims by Category
+
+Retrieves an employee's approved claims aggregated by category for the current month. Includes receipts with "Pending Approve", "Approved", and "Paid" statuses that were submitted in the current month.
+
+**Request:**
+```bash
+curl -X GET "$convexBaseURL/employee/claims?employeeId=jd72awjnbr49zzwjy4qky8xjk57wrjsj" \
+  -H "Authorization: Bearer YOUR_BEARER_TOKEN"
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "employeeId": "jd72awjnbr49zzwjy4qky8xjk57wrjsj",
+  "employee": {
+    "name": "Aina Rahman",
+    "employeeId": "E-102"
+  },
+  "claims": [
+    {
+      "category": "Meals",
+      "total_amount": 450.50
+    },
+    {
+      "category": "Transport",
+      "total_amount": 120.00
+    },
+    {
+      "category": "Hotel",
+      "total_amount": 85.75
+    }
+  ]
+}
+```
+
+**Notes:**
+- Only includes receipts submitted in the current month (based on `submission_date`)
+- Only includes receipts with status: "Pending Approve", "Approved", or "Paid"
+- Results are aggregated by category with total amounts
+- Sorted by total_amount in descending order
+- If no claims found, returns empty `claims` array
+
+**Error Responses:**
+- **400 Bad Request:** Missing employeeId parameter
+  ```json
+  { "error": "Missing employeeId query parameter" }
+  ```
+- **404 Not Found:** Employee not found
+  ```json
+  { "error": "Employee not found with provided employee ID" }
+  ```
+- **401 Unauthorized:** Invalid bearer token

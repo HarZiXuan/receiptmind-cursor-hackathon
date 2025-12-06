@@ -106,6 +106,50 @@ export const getByInvoiceNumber = query({
   },
 });
 
+// Get employee claims aggregated by category (current month only)
+export const getEmployeeClaimsByCategory = query({
+  args: { employeeId: v.id("employees") },
+  handler: async (ctx, args) => {
+    // Get current month start and end dates
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+
+    // Get all receipts for this employee with approved statuses
+    const receipts = await ctx.db
+      .query("receipts")
+      .withIndex("by_employee", (q) => q.eq("employeeId", args.employeeId))
+      .collect();
+
+    // Filter by status and current month submission date
+    const approvedStatuses = ["Pending Approve", "Approved", "Paid"];
+    const filteredReceipts = receipts.filter(receipt => 
+      approvedStatuses.includes(receipt.status) &&
+      receipt.submission_date >= currentMonthStart &&
+      receipt.submission_date < nextMonthStart
+    );
+
+    // Aggregate by category
+    const categoryTotals = {};
+    for (const receipt of filteredReceipts) {
+      if (!categoryTotals[receipt.category]) {
+        categoryTotals[receipt.category] = 0;
+      }
+      categoryTotals[receipt.category] += receipt.total_amount;
+    }
+
+    // Convert to array and sort by total_amount descending
+    const claims = Object.entries(categoryTotals).map(([category, total_amount]) => ({
+      category,
+      total_amount,
+    }));
+
+    claims.sort((a, b) => b.total_amount - a.total_amount);
+
+    return claims;
+  },
+});
+
 // Seed database with initial data
 export const seed = mutation({
   args: {},
