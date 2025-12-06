@@ -8,7 +8,7 @@ Retrieves the currently active company policy.
 
 **Request:**
 ```bash
-curl -X GET "https://YOUR_DEPLOYMENT_NAME.convex.site/policy" \
+curl -X GET "$convexBaseURL/policy" \
   -H "Authorization: Bearer YOUR_BEARER_TOKEN"
 ```
 
@@ -43,7 +43,7 @@ Submits a new receipt for an employee via phone number.
 
 **Request:**
 ```bash
-curl -X POST "https://YOUR_DEPLOYMENT_NAME.convex.site/receipt" \
+curl -X POST "$convexBaseURL/receipt" \
   -H "Authorization: Bearer YOUR_BEARER_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -106,7 +106,7 @@ Retrieves employee information by phone number.
 
 **Request:**
 ```bash
-curl -X GET "https://YOUR_DEPLOYMENT_NAME.convex.site/employee?phoneNumber=%2B60123456789" \
+curl -X GET "$convexBaseURL/employee?phoneNumber=012345678" \
   -H "Authorization: Bearer YOUR_BEARER_TOKEN"
 ```
 
