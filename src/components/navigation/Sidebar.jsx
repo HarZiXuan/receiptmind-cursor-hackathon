@@ -6,7 +6,6 @@ export default function Sidebar({ isOpen, activeTab, onTabChange, onToggle }) {
     { id: 'Dashboard', icon: 'LayoutDashboard', label: 'Home' },
     { id: 'Policy', icon: 'FileText', label: 'Policy' },
     { id: 'Manage Employee', icon: 'Users', label: 'Manage Employee' },
-    { id: 'Settings', icon: 'Settings', label: 'Settings' },
   ];
 
   return (
@@ -18,9 +17,9 @@ export default function Sidebar({ isOpen, activeTab, onTabChange, onToggle }) {
       <div className="p-6 flex items-center justify-between h-20">
         <div className={`flex items-center gap-3 font-bold text-xl tracking-tight text-gray-900 dark:text-white ${!isOpen && 'justify-center w-full'}`}>
           <div className="w-8 h-8 bg-brand rounded-full flex items-center justify-center text-white text-lg shadow-sm flex-shrink-0">
-            S
+            SC
           </div>
-          {isOpen && "SmartClaims"}
+          {isOpen && "Smart Claims"}
         </div>
       </div>
 

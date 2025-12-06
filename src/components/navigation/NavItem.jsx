@@ -1,7 +1,6 @@
 import { 
   LayoutDashboard, 
   FileText, 
-  Settings, 
   Activity,
   Users
 } from 'lucide-react';
@@ -9,7 +8,6 @@ import {
 const iconMap = {
   LayoutDashboard,
   FileText,
-  Settings,
   Activity,
   Users,
 };

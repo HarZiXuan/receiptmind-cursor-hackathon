@@ -4,30 +4,22 @@ import { api } from '../../convex/_generated/api';
 import { Plus, Edit2, Trash2, Users, X, Save, AlertTriangle } from 'lucide-react';
 import Toast from '../components/ui/Toast';
 
-// Format phone number to +60 format
+// Format phone number to 60 format (without +)
 const formatPhoneNumber = (phone) => {
   if (!phone) return '';
   // Remove all non-digit characters
   let cleaned = phone.replace(/\D/g, '');
   
-  // If starts with 60, add +
+  // If starts with 60, return as is
   if (cleaned.startsWith('60')) {
-    return '+' + cleaned;
+    return cleaned;
   }
-  // If starts with 0, replace with +60
+  // If starts with 0, replace with 60
   if (cleaned.startsWith('0')) {
-    return '+60' + cleaned.substring(1);
+    return '60' + cleaned.substring(1);
   }
-  // If doesn't start with +, add +60
-  if (!phone.startsWith('+')) {
-    return '+60' + cleaned;
-  }
-  // If already has +60, return as is
-  if (phone.startsWith('+60')) {
-    return phone;
-  }
-  // Otherwise, ensure it starts with +60
-  return '+60' + cleaned;
+  // Otherwise, ensure it starts with 60
+  return '60' + cleaned;
 };
 
 export default function ManageEmployee() {
@@ -333,7 +325,7 @@ export default function ManageEmployee() {
                     type="tel"
                     value={formData.phoneNumber}
                     onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                    placeholder="+60123456789"
+                    placeholder="60123456789"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand dark:focus:ring-blue-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>

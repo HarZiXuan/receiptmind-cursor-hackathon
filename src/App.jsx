@@ -5,7 +5,6 @@ import Dashboard from './pages/Dashboard';
 import Policy from './pages/Policy';
 import LiveClaims from './pages/LiveClaims';
 import ManageEmployee from './pages/ManageEmployee';
-import Settings from './pages/Settings';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('Dashboard');
@@ -39,8 +38,6 @@ export default function App() {
         return <LiveClaims />;
       case 'Manage Employee':
         return <ManageEmployee />;
-      case 'Settings':
-        return <Settings />;
       default:
         return <Dashboard />;
     }
