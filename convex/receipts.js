@@ -354,6 +354,35 @@ export const reject = mutation({
   },
 });
 
+// Reopen a flagged claim - change back to pending review
+export const reopenClaim = mutation({
+  args: { 
+    id: v.id("receipts"),
+  },
+  handler: async (ctx, args) => {
+    const receipt = await ctx.db.get(args.id);
+    
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+    
+    // Only allow reopening if receipt is flagged
+    if (receipt.status !== "Flagged" && !receipt.is_flagged) {
+      throw new Error("Can only reopen flagged receipts");
+    }
+    
+    // Reset to pending approval state
+    await ctx.db.patch(args.id, {
+      status: "Pending Approve",
+      is_flagged: false,
+      flag_reason: undefined, // Clear the flag reason
+      updatedAt: new Date().toISOString(),
+    });
+    
+    console.log(`✅ Reopened claim for receipt ${args.id}`);
+  },
+});
+
 // Create a new receipt
 export const create = mutation({
   args: {

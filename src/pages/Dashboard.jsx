@@ -10,6 +10,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import SortableHeader from '../components/ui/SortableHeader';
 import ReceiptDetailModal from '../components/modals/ReceiptDetailModal';
 import DateFilter from '../components/filters/DateFilter';
+import Toast from '../components/ui/Toast';
 import { formatAmount } from '../utils/formatAmount';
 
 export default function Dashboard() {
@@ -43,6 +44,7 @@ export default function Dashboard() {
   const [dateRange, setDateRange] = useState({ start: null, end: null });
   const [rowLimit, setRowLimit] = useState(10);
   const [showAll, setShowAll] = useState(true); // Default to showing all rows
+  const [toast, setToast] = useState(null); // Toast notification state
 
   const filteredReceipts = useMemo(() => {
     if (!receipts || receipts.length === 0) {
@@ -279,9 +281,17 @@ export default function Dashboard() {
   const handleReopenClaim = async (id) => {
     try {
       await reopenClaimMutation({ id });
+      setToast({
+        message: 'Claim reopened successfully! The receipt is now pending approval.',
+        type: 'success'
+      });
       setSelectedId(null);
     } catch (error) {
       console.error('Failed to reopen claim:', error);
+      setToast({
+        message: 'Failed to reopen claim. Please try again.',
+        type: 'error'
+      });
     }
   };
 
@@ -628,6 +638,15 @@ export default function Dashboard() {
           onReopenClaim={handleReopenClaim}
           onSendRejectionNote={handleSendRejectionNote}
           onArchive={handleArchive}
+        />
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
     </div>
