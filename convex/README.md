@@ -55,7 +55,6 @@ Receipt submissions with full tracking and approval workflow.
 - `category` - Expense category
 - `status` - Approval status
 - `image_url` - Receipt image URL
-- `physical_id_tag` - Optional physical tag
 
 **Flags & Tracking:**
 - `is_flagged` - Policy violation flag
@@ -63,6 +62,7 @@ Receipt submissions with full tracking and approval workflow.
 - `is_paid` - Payment status
 - `payment_date` - When paid
 - `payment_reference` - Payment reference number
+- `is_modified` - Boolean indicating if user modified AI-analyzed values
 - `notes` - Additional notes
 - `createdAt` / `updatedAt` - Timestamps
 

@@ -120,7 +120,7 @@ http.route({
       total_amount: parseFloat(total_amount),
       category,
       image_url,
-      physical_id_tag: body.physical_id_tag,
+      is_modified: body.is_modified || false,
       notes: body.notes,
     });
 
