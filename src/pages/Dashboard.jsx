@@ -16,7 +16,7 @@ export default function Dashboard() {
   const receiptsData = useQuery(api.receipts.get);
   const receipts = receiptsData || [];
   const isLoading = receiptsData === undefined;
-  
+
   const seed = useMutation(api.receipts.seed);
 
   // Log connection status
@@ -48,10 +48,10 @@ export default function Dashboard() {
     if (!receipts || receipts.length === 0) {
       return [];
     }
-    
+
     // If no date range is set, don't filter by date
     const shouldFilterByDate = dateRange.start && dateRange.end;
-    
+
     const filtered = receipts.filter(r => {
       if (!r) return false;
       // Date filter - only apply if date range is explicitly set
@@ -59,7 +59,7 @@ export default function Dashboard() {
         try {
           // Parse receipt date - handle YYYY-MM-DD format
           const receiptDateStr = r.receipt_date;
-          
+
           // If it's already in YYYY-MM-DD format, parse it directly
           let receiptDate;
           if (receiptDateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
@@ -70,25 +70,25 @@ export default function Dashboard() {
             // Try standard Date parsing
             receiptDate = new Date(receiptDateStr);
           }
-          
+
           // Check if date is valid
           if (isNaN(receiptDate.getTime())) {
             // If date parsing fails, skip date filter for this receipt
             return true; // Include it if we can't parse the date
           }
-          
+
           // Normalize dates to midnight for comparison (avoid timezone issues)
           receiptDate.setHours(0, 0, 0, 0);
           const start = new Date(dateRange.start);
           start.setHours(0, 0, 0, 0);
           const end = new Date(dateRange.end);
           end.setHours(23, 59, 59, 999);
-          
+
           // Compare dates using getTime() for reliable numeric comparison
           const receiptTime = receiptDate.getTime();
           const startTime = start.getTime();
           const endTime = end.getTime();
-          
+
           if (receiptTime < startTime || receiptTime > endTime) {
             return false;
           }
@@ -101,21 +101,21 @@ export default function Dashboard() {
 
       // Search filter
       const searchLower = searchQuery.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         (r.merchant_name || '').toLowerCase().includes(searchLower) ||
         (r.employee_name || '').toLowerCase().includes(searchLower) ||
         (r.total_amount || 0).toString().includes(searchQuery);
-      
+
       // Status filter - handle case-insensitive matching and trim whitespace
       const receiptStatus = (r.status || '').toString().trim();
       const filterStatus = statusFilter.trim();
-      const matchesStatus = statusFilter === 'ALL' 
-        ? true 
+      const matchesStatus = statusFilter === 'ALL'
+        ? true
         : receiptStatus === filterStatus;
 
       return matchesSearch && matchesStatus;
     });
-    
+
     // Debug logging for status filter issues
     if (statusFilter === 'Paid') {
       const allStatuses = [...new Set(receipts.map(r => r?.status).filter(Boolean))];
@@ -132,7 +132,7 @@ export default function Dashboard() {
         filteredReceipts: filtered.map(r => ({ id: r._id, status: r.status }))
       });
     }
-    
+
     // Debug logging to track filtering
     console.log('🔍 Receipt Filtering:', {
       totalReceipts: receipts.length,
@@ -146,7 +146,7 @@ export default function Dashboard() {
         date: dateRange.start && dateRange.end
       }
     });
-    
+
     return filtered;
   }, [receipts, searchQuery, statusFilter, dateRange]);
 
@@ -176,7 +176,7 @@ export default function Dashboard() {
       .map(r => r.receipt_date)
       .filter(d => d)
       .sort();
-    
+
     return {
       minDate: allDates[0] || null,
       maxDate: allDates[allDates.length - 1] || null
@@ -191,17 +191,17 @@ export default function Dashboard() {
         graphPoints: []
       };
     }
-    
+
     const total = filteredReceipts.reduce((sum, r) => {
       if (!r) return sum;
       return sum + Number(r.total_amount || 0);
     }, 0);
     const count = filteredReceipts.length;
-    
+
     const dailyData = {};
     filteredReceipts.forEach(r => {
       if (!r) return;
-      const date = r.receipt_date; 
+      const date = r.receipt_date;
       if (!date) return;
       dailyData[date] = (dailyData[date] || 0) + Number(r.total_amount || 0);
     });
@@ -222,6 +222,7 @@ export default function Dashboard() {
 
   const approveMutation = useMutation(api.receipts.approve);
   const payMutation = useMutation(api.receipts.pay);
+  const initiatePayoutMutation = useMutation(api.receipts.initiatePayout);
   const undoApprovalMutation = useMutation(api.receipts.undoApproval);
   const reopenClaimMutation = useMutation(api.receipts.reopenClaim);
   const sendRejectionNoteMutation = useMutation(api.receipts.sendRejectionNote);
@@ -239,13 +240,21 @@ export default function Dashboard() {
   const handlePay = async (id) => {
     try {
       console.log('🔄 Starting payment flow for receipt:', id);
-      // First approve the receipt, then countdown will handle payment
-      await approveMutation({ id });
-      console.log('✅ Receipt approved, countdown should start');
-      // Don't close modal - let countdown run
-      // The receipt status will update via Convex query, triggering countdown
+
+      // Call the scheduled payout mutation
+      // Note: In a real app, get the actual user ID. For now, we omit approvedBy or use a placeholder.
+      const result = await initiatePayoutMutation({
+        id,
+        // approvedBy: "user_id_here" // Optional
+      });
+
+      console.log(`✅ Receipt approved! Payment will complete at ${result.willCompleteAt}`);
+      alert(`Receipt approved! Payment will be processed in 30 seconds via Ryt Bank.`);
+
+      // No need to manually update status or close modal immediately if we want them to see the status update via real-time query.
     } catch (error) {
-      console.error('❌ Failed to approve receipt:', error);
+      console.error('❌ Failed to initiate payment:', error);
+      alert('Failed to initiate payment. Please try again.');
     }
   };
 
@@ -310,15 +319,15 @@ export default function Dashboard() {
     }
   };
 
-  const selected = useMemo(() => 
-    receipts.find(r => r._id === selectedId) || null, 
-  [receipts, selectedId]);
+  const selected = useMemo(() =>
+    receipts.find(r => r._id === selectedId) || null,
+    [receipts, selectedId]);
 
   // Ensure analytics is always defined
   const safeAnalytics = analytics || { total: 0, count: 0, graphPoints: [] };
   const safeFilteredReceipts = filteredReceipts || [];
   const safeSortedReceipts = sortedReceipts || [];
-  
+
   // Paginated receipts for table display - MUST be before any early returns
   const displayedReceipts = useMemo(() => {
     if (!safeSortedReceipts || safeSortedReceipts.length === 0) {
@@ -389,9 +398,9 @@ export default function Dashboard() {
         <div className="flex gap-2">
           <ActionButton icon={Plus} label="New Claim" primary />
           {receipts.length === 0 && (
-            <ActionButton 
-              icon={Plus} 
-              label="Seed Data" 
+            <ActionButton
+              icon={Plus}
+              label="Seed Data"
               onClick={handleSeed}
             />
           )}
@@ -400,7 +409,7 @@ export default function Dashboard() {
 
       {/* Date Filter Bar */}
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-card">
-        <DateFilter 
+        <DateFilter
           onDateRangeChange={(start, end) => setDateRange({ start, end })}
           minDate={availableDateRange.minDate}
           maxDate={availableDateRange.maxDate}
@@ -421,13 +430,13 @@ export default function Dashboard() {
             </div>
             <div className="flex gap-1">
               <button className="p-1.5 rounded hover:bg-gray-100 text-gray-900">
-                <Activity size={18}/>
+                <Activity size={18} />
               </button>
             </div>
           </div>
           <div className="h-48 w-full">
-            <LineChart 
-              data={safeAnalytics.graphPoints || []} 
+            <LineChart
+              data={safeAnalytics.graphPoints || []}
               minDate={availableDateRange.minDate}
               maxDate={availableDateRange.maxDate}
             />
@@ -444,13 +453,13 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex-1">
-            <PieChart 
+            <PieChart
               data={[
                 { label: 'Pending Approve', color: '#f59e0b', amount: receipts.filter(r => r?.status === 'Pending Approve').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
                 { label: 'Approved', color: '#10b981', amount: receipts.filter(r => r?.status === 'Approved').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
                 { label: 'Flagged', color: '#ef4444', amount: receipts.filter(r => r?.status === 'Flagged').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
                 { label: 'Paid', color: '#8b5cf6', amount: receipts.filter(r => r?.status === 'Paid').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
-              ].filter(d => d.amount > 0)} 
+              ].filter(d => d.amount > 0)}
               totalAmount={receipts.reduce((s, r) => s + Number(r.total_amount || 0), 0)}
               onStatusSelect={(label) => setStatusFilter(label === statusFilter ? 'ALL' : label)}
               selectedStatus={statusFilter}
@@ -466,15 +475,15 @@ export default function Dashboard() {
           <div className="flex gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search..." 
+              <input
+                type="text"
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
               />
             </div>
-            <select 
+            <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand"
@@ -550,8 +559,8 @@ export default function Dashboard() {
                 {(displayedReceipts || []).map((r) => {
                   if (!r) return null;
                   return (
-                    <tr 
-                      key={r._id} 
+                    <tr
+                      key={r._id}
                       className="hover:bg-gray-50 transition-colors cursor-pointer group"
                       onClick={() => setSelectedId(r._id)}
                     >
@@ -582,8 +591,8 @@ export default function Dashboard() {
                     <p className="text-lg font-medium text-gray-700 mb-2">No transactions found</p>
                     <p className="text-sm text-gray-500 mb-4">The database appears to be empty.</p>
                   </div>
-                  <button 
-                    onClick={handleSeed} 
+                  <button
+                    onClick={handleSeed}
                     className="px-6 py-3 bg-brand text-white rounded-lg font-medium hover:bg-blue-800 transition-colors"
                   >
                     Seed Mock Data
@@ -610,7 +619,7 @@ export default function Dashboard() {
       {/* Receipt Detail Modal */}
       {selected && (
         <ReceiptDetailModal
-          receipt={selected} 
+          receipt={selected}
           onClose={() => setSelectedId(null)}
           onApprove={handleApprove}
           onPay={handlePay}
