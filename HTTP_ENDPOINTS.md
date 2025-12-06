@@ -39,7 +39,7 @@ curl -X GET "$convexBaseURL/policy" \
 
 ### 2. POST /receipt - Submit Receipt
 
-Submits a new receipt for an employee via employee ID.
+Submits a new receipt for an employee via employee ID. Accepts base64-encoded images and automatically uploads them to UploadThing.
 
 **Request:**
 ```bash
@@ -52,7 +52,7 @@ curl -X POST "$convexBaseURL/receipt" \
     "merchant_name": "Coffee Bean",
     "total_amount": 45.50,
     "category": "Meals",
-    "image_url": "https://example.com/receipt.jpg",
+    "image_base64": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
     "is_modified": false,
     "notes": "Team lunch meeting"
   }'
@@ -64,11 +64,20 @@ curl -X POST "$convexBaseURL/receipt" \
 - `merchant_name` - Name of the merchant/vendor
 - `total_amount` - Receipt amount (number)
 - `category` - Expense category (string)
-- `image_url` - URL to receipt image
+- `image_base64` - Base64-encoded image string (with or without data URL prefix)
 
 **Optional Fields:**
 - `is_modified` - Boolean indicating if user modified AI-analyzed values (defaults to false)
 - `notes` - Additional notes
+
+**Image Format:**
+The `image_base64` field accepts base64-encoded images in two formats:
+- With data URL prefix: `data:image/jpeg;base64,/9j/4AAQ...` (recommended)
+- Raw base64 string: `/9j/4AAQ...`
+
+Supported image types: JPEG, PNG, GIF, WebP, BMP
+
+Images are uploaded to imgbb and the URL is stored in the database.
 
 **Response (201 Created):**
 ```json
@@ -76,6 +85,7 @@ curl -X POST "$convexBaseURL/receipt" \
   "success": true,
   "receiptId": "jd7h2k3m5n6p8q9r",
   "display_id": 405,
+  "image_url": "https://i.ibb.co/abc123/receipt.jpg",
   "employee": {
     "id": "k2j3h4g5f6d7s8a9",
     "name": "Aina Rahman",
@@ -89,12 +99,19 @@ curl -X POST "$convexBaseURL/receipt" \
   ```json
   {
     "error": "Missing required fields",
-    "required": ["employeeId", "receipt_date", "merchant_name", "total_amount", "category", "image_url"]
+    "required": ["employeeId", "receipt_date", "merchant_name", "total_amount", "category", "image_base64"]
   }
   ```
 - **404 Not Found:** Employee not found
   ```json
   { "error": "Employee not found with provided employee ID" }
+  ```
+- **500 Internal Server Error:** Image upload failed
+  ```json
+  {
+    "error": "Image upload failed",
+    "details": "Error message from UploadThing"
+  }
   ```
 - **401 Unauthorized:** Invalid bearer token
 

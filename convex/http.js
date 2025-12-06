@@ -25,6 +25,46 @@ async function validateBearerToken(request) {
   return { valid: true };
 }
 
+// Helper function to upload base64 image to imgbb
+async function uploadBase64ToImgbb(base64String) {
+  const imgbbApiKey = process.env.IMGBB_API_KEY;
+  
+  if (!imgbbApiKey) {
+    throw new Error("IMGBB_API_KEY environment variable not configured");
+  }
+  
+  // Remove data URL prefix if present (e.g., "data:image/jpeg;base64,")
+  let base64Data = base64String;
+  if (base64String.includes(',')) {
+    base64Data = base64String.split(',')[1];
+  }
+  
+  // Create form data for imgbb API
+  const formData = new FormData();
+  formData.append('key', imgbbApiKey);
+  formData.append('image', base64Data);
+  
+  // Upload to imgbb
+  const response = await fetch("https://api.imgbb.com/1/upload", {
+    method: "POST",
+    body: formData,
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`imgbb upload failed: ${errorText}`);
+  }
+  
+  const result = await response.json();
+  
+  if (!result.success || !result.data || !result.data.url) {
+    throw new Error("No file URL returned from imgbb");
+  }
+  
+  // Return the file URL
+  return result.data.url;
+}
+
 // 1. GET /policy - Get current active policy
 http.route({
   path: "/policy",
@@ -82,12 +122,12 @@ http.route({
     const body = await request.json();
     
     // Validate required fields
-    const { employeeId, receipt_date, merchant_name, total_amount, category, image_url } = body;
+    const { employeeId, receipt_date, merchant_name, total_amount, category, image_base64 } = body;
     
-    if (!employeeId || !receipt_date || !merchant_name || !total_amount || !category || !image_url) {
+    if (!employeeId || !receipt_date || !merchant_name || !total_amount || !category || !image_base64) {
       return new Response(JSON.stringify({ 
         error: "Missing required fields",
-        required: ["employeeId", "receipt_date", "merchant_name", "total_amount", "category", "image_url"]
+        required: ["employeeId", "receipt_date", "merchant_name", "total_amount", "category", "image_base64"]
       }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -102,6 +142,20 @@ http.route({
         error: "Employee not found with provided employee ID" 
       }), {
         status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Upload base64 image to imgbb
+    let image_url;
+    try {
+      image_url = await uploadBase64ToImgbb(image_base64);
+    } catch (error) {
+      return new Response(JSON.stringify({ 
+        error: "Image upload failed",
+        details: error.message
+      }), {
+        status: 500,
         headers: { "Content-Type": "application/json" },
       });
     }
@@ -128,6 +182,7 @@ http.route({
       success: true,
       receiptId,
       display_id,
+      image_url,
       employee: {
         id: employee._id,
         name: employee.name,
