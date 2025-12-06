@@ -38,14 +38,14 @@ Employees who submit receipts (may or may not have user accounts).
 Receipt submissions with full tracking and approval workflow.
 
 **Foreign Keys:**
-- `employeeId` - Reference to employees table
+- `employeeId` - Reference to employees table (use this to fetch employee data)
 - `submittedBy` - User who submitted (optional)
 - `approvedBy` - User who approved (optional)
 
+**Note:** Employee data (name, employeeId string, etc.) should be fetched from the employees table using the `employeeId` foreign key. Use `getWithDetails()` query to get receipts with joined employee data.
+
 **Legacy Fields (backwards compatible):**
 - `display_id` - Display number
-- `employee_id` - String employee ID
-- `employee_name` - Employee name (denormalized)
 
 **Receipt Data:**
 - `submission_date` - When submitted
@@ -57,9 +57,8 @@ Receipt submissions with full tracking and approval workflow.
 - `image_url` - Receipt image URL
 
 **Flags & Tracking:**
-- `is_flagged` - Policy violation flag
-- `flag_reason` - Reason for flagging
-- `is_paid` - Payment status
+- `status` - Approval status: "Pending Approve", "Approved", "Rejected", "Paid" (replaces is_flagged and is_paid)
+- `flag_reason` - Reason for flagging/rejection
 - `payment_date` - When paid
 - `payment_reference` - Payment reference number
 - `is_modified` - Boolean indicating if user modified AI-analyzed values
