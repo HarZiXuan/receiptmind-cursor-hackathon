@@ -1,5 +1,5 @@
 import { query, mutation, internalMutation } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import { v } from "convex/values";
 
 // Get all receipts
@@ -262,6 +262,9 @@ export const initiatePayout = mutation({
     const completionTime = new Date(Date.now() + 30000).toISOString();
     console.log(`💰 Payment approved for receipt ${args.id}, will complete payment at ${completionTime}`);
     
+    // Schedule notification
+    await scheduleNotification(ctx, args.id, "Approved");
+
     return { 
       receiptId: args.id, 
       status: "Approved",
@@ -269,6 +272,25 @@ export const initiatePayout = mutation({
     };
   },
 });
+
+// Helper to schedule notifications
+async function scheduleNotification(ctx, receiptId, status, reason) {
+  const receipt = await ctx.db.get(receiptId);
+  if (!receipt) return;
+  
+  const employee = await ctx.db.get(receipt.employeeId);
+  if (!employee || !employee.phoneNumber) return;
+
+  await ctx.scheduler.runAfter(0, api.notifications.sendEmployeeNotification, {
+    phoneNumber: employee.phoneNumber,
+    status,
+    receiptId: receipt.display_id,
+    amount: receipt.total_amount,
+    date: receipt.receipt_date,
+    merchantName: receipt.merchant_name,
+    reason,
+  });
+}
 
 // Internal mutation called by scheduler after 30 seconds
 export const completePayoutInternal = internalMutation({
@@ -287,6 +309,9 @@ export const completePayoutInternal = internalMutation({
     });
     
     console.log(`✅ Payment completed for receipt ${args.receiptId} with reference ${args.paymentReference}`);
+    
+    // Schedule notification
+    await scheduleNotification(ctx, args.receiptId, "Paid");
   },
 });
 
@@ -330,6 +355,9 @@ export const approve = mutation({
       is_flagged: false,
       updatedAt: new Date().toISOString(),
     });
+    
+    // Schedule notification
+    await scheduleNotification(ctx, args.id, "Approved");
   },
 });
 
@@ -366,6 +394,9 @@ export const reject = mutation({
     await ctx.db.patch(args.id, updates);
     
     console.log(`✅ Rejected receipt ${args.id}${args.reason ? ` with reason: ${args.reason}` : ''}`);
+    
+    // Schedule notification
+    await scheduleNotification(ctx, args.id, "Flagged", args.reason);
   },
 });
 
