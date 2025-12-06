@@ -346,16 +346,8 @@ export default function Dashboard() {
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async (id, reason) => {
     try {
-      // Prompt for optional rejection reason
-      const reason = prompt('Enter rejection reason (optional):');
-      
-      // If user clicked cancel, don't proceed
-      if (reason === null) {
-        return;
-      }
-      
       await rejectMutation({ 
         id,
         reason: reason || undefined // Pass undefined if empty string
@@ -375,15 +367,20 @@ export default function Dashboard() {
     }
   };
 
-  const handleSendRejectionNote = async (id) => {
+  const handleSendRejectionNote = async (id, note) => {
     try {
-      const note = prompt('Enter rejection note:');
-      if (note !== null) {
-        await sendRejectionNoteMutation({ id, note });
-        setSelectedId(null);
-      }
+      await sendRejectionNoteMutation({ id, note });
+      setToast({
+        message: 'Rejection note sent successfully.',
+        type: 'success'
+      });
+      setSelectedId(null);
     } catch (error) {
       console.error('Failed to send rejection note:', error);
+      setToast({
+        message: 'Failed to send rejection note. Please try again.',
+        type: 'error'
+      });
     }
   };
 
