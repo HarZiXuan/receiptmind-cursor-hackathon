@@ -40,6 +40,7 @@ export default function ManageEmployee() {
   const [formData, setFormData] = useState({
     employee_id: '',
     name: '',
+    email: '',
     phoneNumber: '',
     department: '',
     status: 'Active'
@@ -50,6 +51,7 @@ export default function ManageEmployee() {
     setFormData({
       employee_id: '',
       name: '',
+      email: '',
       phoneNumber: '',
       department: '',
       status: 'Active'
@@ -62,6 +64,7 @@ export default function ManageEmployee() {
     setFormData({
       employee_id: employee.employeeId,
       name: employee.name,
+      email: employee.email || '',
       phoneNumber: employee.phoneNumber || '',
       department: employee.position, // Mapping position to department based on mock data usage
       status: employee.isActive ? 'Active' : 'Inactive'
@@ -100,7 +103,7 @@ export default function ManageEmployee() {
   };
 
   const handleSave = async () => {
-    if (!formData.employee_id || !formData.name || !formData.department) {
+    if (!formData.employee_id || !formData.name || !formData.email || !formData.department) {
       setToast({
         message: 'Please fill in all required fields',
         type: 'error'
@@ -115,6 +118,7 @@ export default function ManageEmployee() {
           id: editingEmployee._id,
           employeeId: formData.employee_id,
           name: formData.name,
+          email: formData.email,
           phoneNumber: formData.phoneNumber || undefined,
           position: formData.department,
         });
@@ -140,6 +144,7 @@ export default function ManageEmployee() {
         await createEmployee({
           employeeId: formData.employee_id,
           name: formData.name,
+          email: formData.email,
           phoneNumber: formData.phoneNumber || undefined,
           position: formData.department,
         });
@@ -155,6 +160,7 @@ export default function ManageEmployee() {
       setFormData({
         employee_id: '',
         name: '',
+        email: '',
         phoneNumber: '',
         department: '',
         status: 'Active'
@@ -174,6 +180,7 @@ export default function ManageEmployee() {
     setFormData({
       employee_id: '',
       name: '',
+      email: '',
       phoneNumber: '',
       department: '',
       status: 'Active'
@@ -313,6 +320,19 @@ export default function ManageEmployee() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="John Doe"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand dark:focus:ring-blue-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="john.doe@company.com"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand dark:focus:ring-blue-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>

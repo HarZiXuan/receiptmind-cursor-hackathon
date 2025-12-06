@@ -52,12 +52,14 @@ export default defineSchema({
     payment_reference: v.optional(v.string()),
     notes: v.optional(v.string()),
     is_modified: v.optional(v.boolean()), // Optional for backwards compatibility with existing records
+    invoice_number: v.optional(v.string()), // Unique invoice/receipt number for duplicate detection
     createdAt: v.optional(v.string()),
     updatedAt: v.optional(v.string()),
   })
     .index("by_employee", ["employeeId"])
     .index("by_status", ["status"])
-    .index("by_date", ["receipt_date"]),
+    .index("by_date", ["receipt_date"])
+    .index("by_invoice_number", ["invoice_number"]),
 
   // Policies table - company policies with versioning
   policies: defineTable({
