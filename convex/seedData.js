@@ -29,38 +29,42 @@ export const lastNames = [
 
 // Common Malaysian merchants
 export const merchants = {
-  "Client Meal": [
-    "Madam Kwan's", "The Beef", "Nando's", "Tony Roma's", "TGI Friday's",
-    "Sushi King", "Rakuzen", "Seoul Garden", "Pavilion KL", "Songket Restaurant",
-    "Bijan Bar & Restaurant", "Atmosphere 360", "Contango", "Opus Bistro",
-  ],
-  "Team Snacks": [
-    "Starbucks", "Coffee Bean", "Zus Coffee", "The Coffee House", "Tealive",
-    "Family Mart", "7-Eleven", "99 Speedmart", "KK Super Mart", "MyNews",
-  ],
-  "Transport": [
+  "Transportation": [
     "Grab Ride", "Grab Car", "Touch 'n Go", "PLUS Highway", "MyRapid",
     "KTM Komuter", "LRT", "MRT", "Airport Taxi", "ERL Express",
-  ],
-  "Hotel": [
-    "Hilton KL", "Mandarin Oriental", "Shangri-La", "Grand Hyatt", "JW Marriott",
-    "The Ritz-Carlton", "Four Seasons", "InterContinental", "Concorde Hotel",
-    "Traders Hotel", "Le Meridien", "Renaissance Hotel", "Sunway Resort",
-  ],
-  "Office Supplies": [
-    "Popular Bookstore", "MPH", "Office Depot", "Mr. DIY", "Daiso",
-    "Shopee", "Lazada", "Courts", "Harvey Norman", "Machines",
-  ],
-  "Parking": [
+    "Petronas", "Shell", "Caltex", "BHPetrol", "Petron",
     "KL Sentral Parking", "KLCC Parking", "Mid Valley Parking", "Pavilion Parking",
     "1Utama Parking", "Suria KLCC", "The Gardens Mall", "Bangsar Village",
   ],
-  "Petrol": [
-    "Petronas", "Shell", "Caltex", "BHPetrol", "Petron",
-  ],
-  "Entertainment": [
+  "Meals & Entertainment": [
+    "Madam Kwan's", "The Beef", "Nando's", "Tony Roma's", "TGI Friday's",
+    "Sushi King", "Rakuzen", "Seoul Garden", "Pavilion KL", "Songket Restaurant",
+    "Bijan Bar & Restaurant", "Atmosphere 360", "Contango", "Opus Bistro",
+    "Starbucks", "Coffee Bean", "Zus Coffee", "The Coffee House", "Tealive",
+    "Family Mart", "7-Eleven", "99 Speedmart", "KK Super Mart", "MyNews",
     "GSC Cinemas", "TGV Cinemas", "Escape Room", "Kidzania", "Sunway Lagoon",
     "Aquaria KLCC", "KL Tower", "Batu Caves", "Petrosains",
+  ],
+  "Accommodation & Travel": [
+    "Hilton KL", "Mandarin Oriental", "Shangri-La", "Grand Hyatt", "JW Marriott",
+    "The Ritz-Carlton", "Four Seasons", "InterContinental", "Concorde Hotel",
+    "Traders Hotel", "Le Meridien", "Renaissance Hotel", "Sunway Resort",
+    "AirAsia", "Malaysia Airlines", "Firefly", "Malindo Air",
+  ],
+  "Office Expenses": [
+    "Popular Bookstore", "MPH", "Office Depot", "Mr. DIY", "Daiso",
+    "Shopee", "Lazada", "Courts", "Harvey Norman", "Machines",
+    "Celcom", "Maxis", "Digi", "Unifi", "TIME Internet",
+  ],
+  "Training & Development": [
+    "Coursera", "Udemy", "LinkedIn Learning", "Pluralsight", "Skillshare",
+    "HRDF Training", "Malaysian Training Centre", "Tech Academy KL",
+    "Professional Conference Asia", "KL Convention Centre",
+  ],
+  "Health & Welfare": [
+    "Gleneagles Hospital", "Pantai Hospital", "Prince Court", "KPJ Healthcare",
+    "Guardian Pharmacy", "Watsons", "Caring Pharmacy", "Alpro Pharmacy",
+    "Fitness First", "Celebrity Fitness", "Chi Fitness", "True Fitness",
   ],
 };
 
@@ -265,14 +269,12 @@ export function generateRandomEmployee(index) {
 // Generate amount based on category
 export function generateAmountForCategory(category) {
   const ranges = {
-    "Client Meal": [50, 300],
-    "Team Snacks": [10, 80],
-    "Transport": [8, 150],
-    "Hotel": [200, 800],
-    "Office Supplies": [15, 400],
-    "Parking": [5, 30],
-    "Petrol": [30, 150],
-    "Entertainment": [20, 200],
+    "Transportation": [8, 200],
+    "Meals & Entertainment": [15, 300],
+    "Accommodation & Travel": [200, 1000],
+    "Office Expenses": [15, 500],
+    "Training & Development": [100, 2000],
+    "Health & Welfare": [50, 800],
   };
 
   const range = ranges[category] || [10, 100];
