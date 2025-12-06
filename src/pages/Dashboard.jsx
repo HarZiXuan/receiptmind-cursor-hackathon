@@ -355,7 +355,7 @@ export default function Dashboard() {
       });
       
       setToast({
-        message: 'Receipt rejected and flagged for review.',
+        message: 'Receipt rejected and marked for review.',
         type: 'success'
       });
       setSelectedId(null);
@@ -475,11 +475,10 @@ export default function Dashboard() {
       {/* Welcome & Actions Row */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900">Welcome, Jane</h1>
-          <p className="text-gray-500 mt-1">Here's what's happening with your claims.</p>
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Welcome, Jane</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Here's what's happening with your claims.</p>
         </div>
         <div className="flex gap-2">
-          <ActionButton icon={Plus} label="New Claim" primary />
           {receipts.length === 0 && (
             <ActionButton
               icon={Plus}
@@ -491,7 +490,7 @@ export default function Dashboard() {
       </div>
 
       {/* Date Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-card">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card">
         <DateFilter
           onDateRangeChange={(start, end) => setDateRange({ start, end })}
           minDate={availableDateRange.minDate}
@@ -502,21 +501,21 @@ export default function Dashboard() {
       {/* Analytics Cards Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Graph Card */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-card flex flex-col">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card flex flex-col">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-sm font-medium text-gray-500">
-                {statusFilter === 'Flagged' ? 'Total Flagged Amount' : 
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                {statusFilter === 'Rejected' ? 'Total Rejected Amount' : 
                  statusFilter === 'Pending Approve' ? 'Pending Approval Amount' : 
                  'Total Amount'}
               </p>
               <div className="flex items-baseline gap-2">
-                <h2 className="text-3xl font-semibold text-gray-900">{formatAmount(safeAnalytics.total)}</h2>
+                <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">{formatAmount(safeAnalytics.total)}</h2>
                 {statusFilter === 'ALL' && <span className="text-sm font-medium text-red-500">-2.55%</span>}
               </div>
             </div>
             <div className="flex gap-1">
-              {statusFilter !== 'Flagged' && statusFilter !== 'Pending Approve' ? (
+              {statusFilter !== 'Rejected' && statusFilter !== 'Pending Approve' ? (
                 <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
                   <button 
                     onClick={() => setChartType('line')}
@@ -544,23 +543,23 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="h-72 w-full">
-            {statusFilter === 'Flagged' ? (
+            {statusFilter === 'Rejected' ? (
               <div className="h-full grid grid-cols-2 gap-6">
-                <div className="bg-red-50 rounded-xl p-5 flex flex-col justify-center border border-red-100 relative overflow-hidden group">
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-5 flex flex-col justify-center border border-red-100 dark:border-red-800 relative overflow-hidden group">
                    <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                      <AlertCircle size={60} className="text-red-600" />
+                      <AlertCircle size={60} className="text-red-600 dark:text-red-400" />
                    </div>
-                   <p className="text-sm font-medium text-red-700 mb-1">Flagged Receipts</p>
-                   <p className="text-3xl font-bold text-gray-900">{safeAnalytics.count}</p>
-                   <p className="text-xs text-red-600 mt-2 font-medium">Action Required</p>
+                   <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-1">Rejected Receipts</p>
+                   <p className="text-3xl font-bold text-gray-900 dark:text-white">{safeAnalytics.count}</p>
+                   <p className="text-xs text-red-600 dark:text-red-400 mt-2 font-medium">Action Required</p>
                 </div>
-                <div className="bg-red-50 rounded-xl p-5 flex flex-col justify-center border border-red-100 relative overflow-hidden group">
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-5 flex flex-col justify-center border border-red-100 dark:border-red-800 relative overflow-hidden group">
                    <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                      <DollarSign size={60} className="text-red-600" />
+                      <DollarSign size={60} className="text-red-600 dark:text-red-400" />
                    </div>
-                   <p className="text-sm font-medium text-red-700 mb-1">Total Flagged</p>
-                   <p className="text-3xl font-bold text-gray-900">{formatAmount(safeAnalytics.total)}</p>
-                   <p className="text-xs text-red-600 mt-2 font-medium">Requires Review</p>
+                   <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-1">Total Rejected</p>
+                   <p className="text-3xl font-bold text-gray-900 dark:text-white">{formatAmount(safeAnalytics.total)}</p>
+                   <p className="text-xs text-red-600 dark:text-red-400 mt-2 font-medium">Requires Review</p>
                 </div>
               </div>
             ) : (statusFilter === 'Pending Approve' || chartType === 'bar') ? (
@@ -580,18 +579,18 @@ export default function Dashboard() {
         </div>
 
         {/* Side Stats Card - Breakdown */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-card flex flex-col">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card flex flex-col">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-gray-900">All Status</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white">All Status</h3>
           </div>
           <div className="flex-1">
             <PieChart
               data={[
                 { label: 'Pending Approve', color: '#f59e0b', amount: receipts.filter(r => r?.status === 'Pending Approve').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
-                { label: 'Flagged', color: '#ef4444', amount: receipts.filter(r => r?.status === 'Flagged').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
+                { label: 'Rejected', color: '#ef4444', amount: receipts.filter(r => (r?.status === 'Rejected' || r?.status === 'Flagged')).reduce((s, r) => s + Number(r.total_amount || 0), 0) },
                 { label: 'Paid', color: '#8b5cf6', amount: receipts.filter(r => r?.status === 'Paid').reduce((s, r) => s + Number(r.total_amount || 0), 0) },
               ].filter(d => d.amount > 0)}
-              totalAmount={receipts.filter(r => ['Pending Approve', 'Flagged', 'Paid'].includes(r?.status)).reduce((s, r) => s + Number(r.total_amount || 0), 0)}
+              totalAmount={receipts.filter(r => ['Pending Approve', 'Rejected', 'Flagged', 'Paid'].includes(r?.status)).reduce((s, r) => s + Number(r.total_amount || 0), 0)}
               onStatusSelect={(label) => setStatusFilter(label)}
               selectedStatus={statusFilter}
             />
@@ -602,7 +601,7 @@ export default function Dashboard() {
       {/* Transactions Table Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Transactions</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Transactions</h2>
           <div className="flex gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
@@ -621,15 +620,15 @@ export default function Dashboard() {
             >
               <option value="Paid">Paid</option>
               <option value="Pending Approve">Pending Approve</option>
-              <option value="Flagged">Flagged</option>
+              <option value="Rejected">Rejected</option>
             </select>
           </div>
         </div>
 
         {/* Pagination Controls */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-card">
+        <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">Show:</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
             <select
               value={showAll ? 'all' : rowLimit}
               onChange={(e) => {
@@ -640,14 +639,14 @@ export default function Dashboard() {
                   setRowLimit(Number(e.target.value));
                 }
               }}
-              className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand"
+              className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand dark:focus:border-blue-500"
             >
               <option value="10">10 rows</option>
               <option value="50">50 rows</option>
               <option value="100">100 rows</option>
               <option value="all">All rows</option>
             </select>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               Showing {displayedReceipts?.length || 0} of {safeSortedReceipts?.length || 0} transactions
             </span>
           </div>
@@ -665,41 +664,41 @@ export default function Dashboard() {
                 setShowAll(false);
                 setRowLimit(10);
               }}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               Show 10
             </button>
           )}
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 shadow-card overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-medium">
+              <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 font-medium">
                 <tr>
-                  <SortableHeader label="Merchant" sortKey="merchant_name" currentSort={sortConfig} onSort={handleSort} />
                   <SortableHeader label="Date" sortKey="receipt_date" currentSort={sortConfig} onSort={handleSort} />
                   <SortableHeader label="Employee" sortKey="employee_name" currentSort={sortConfig} onSort={handleSort} />
+                  <SortableHeader label="Merchant" sortKey="merchant_name" currentSort={sortConfig} onSort={handleSort} />
                   <SortableHeader label="Amount" sortKey="total_amount" currentSort={sortConfig} onSort={handleSort} />
                   <th className="px-6 py-4 font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {(displayedReceipts || []).map((r) => {
                   if (!r) return null;
                   return (
                     <tr
                       key={r._id}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group"
                       onClick={() => setSelectedId(r._id)}
                     >
-                      <td className="px-6 py-4 font-medium text-gray-900">
+                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{r.receipt_date}</td>
+                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{r.employee_name}</td>
+                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
                         {r.merchant_name}
-                        <div className="text-xs text-gray-500 font-normal mt-0.5">{r.category}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 font-normal mt-0.5">{r.category}</div>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">{r.receipt_date}</td>
-                      <td className="px-6 py-4 text-gray-600">{r.employee_name}</td>
-                      <td className="px-6 py-4 font-medium">{formatAmount(r.total_amount)}</td>
+                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{formatAmount(r.total_amount)}</td>
                       <td className="px-6 py-4">
                         <StatusBadge status={r.status} isFlagged={r.is_flagged} />
                       </td>
@@ -710,15 +709,15 @@ export default function Dashboard() {
             </table>
           </div>
           {(!displayedReceipts || displayedReceipts.length === 0) && (!safeSortedReceipts || safeSortedReceipts.length === 0) && (
-            <div className="p-12 text-center text-gray-500">
+            <div className="p-12 text-center text-gray-500 dark:text-gray-400">
               {receipts.length === 0 ? (
                 <>
                   <div className="mb-4">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <Activity size={32} className="text-gray-400" />
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Activity size={32} className="text-gray-400 dark:text-gray-500" />
                     </div>
-                    <p className="text-lg font-medium text-gray-700 mb-2">No transactions found</p>
-                    <p className="text-sm text-gray-500 mb-4">The database appears to be empty.</p>
+                    <p className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">No transactions found</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">The database appears to be empty.</p>
                   </div>
                   <button
                     onClick={handleSeed}
@@ -726,7 +725,7 @@ export default function Dashboard() {
                   >
                     Seed Mock Data
                   </button>
-                  <p className="text-xs text-gray-400 mt-4">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-4">
                     This will populate the database with sample receipt data.
                   </p>
                 </>
@@ -734,7 +733,7 @@ export default function Dashboard() {
                 <>
                   <p>No transactions found for the selected filters.</p>
                   {dateRange.start && dateRange.end && (
-                    <p className="text-xs mt-2 text-gray-400">
+                    <p className="text-xs mt-2 text-gray-400 dark:text-gray-500">
                       Date range: {dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()}
                     </p>
                   )}

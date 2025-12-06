@@ -127,26 +127,26 @@ export default function DateFilter({ onDateRangeChange, minDate, maxDate }) {
   const maxDateStr = maxDate ? formatDateForInput(maxDate) : '';
 
   return (
-    <div className="flex items-center gap-3 flex-wrap">
+    <div className="flex items-center justify-between w-full gap-3">
       {/* Date Range Button */}
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
-          <Calendar size={16} className="text-gray-500" />
+          <Calendar size={16} className="text-gray-500 dark:text-gray-400" />
           <span>{formatDateRange(currentRange.start, currentRange.end)}</span>
-          <ChevronDown size={14} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown size={14} className={`text-gray-400 dark:text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {isOpen && (
-          <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4 min-w-[320px]">
+          <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 p-4 min-w-[320px]">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-gray-900">Custom Date Range</div>
+              <div className="text-sm font-medium text-gray-900 dark:text-white">Custom Date Range</div>
               {(isCustomRange || customStartDate || customEndDate) && (
                 <button
                   onClick={handleClearCustomRange}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                   title="Clear date range"
                 >
                   <X size={16} />
@@ -156,7 +156,7 @@ export default function DateFilter({ onDateRangeChange, minDate, maxDate }) {
             
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">Start Date</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Start Date</label>
                 <input
                   type="date"
                   value={customStartDate}
@@ -169,12 +169,12 @@ export default function DateFilter({ onDateRangeChange, minDate, maxDate }) {
                   }}
                   min={minDateStr}
                   max={maxDateStr || customEndDate}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand dark:focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">End Date</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">End Date</label>
                 <input
                   type="date"
                   value={customEndDate}
@@ -187,7 +187,7 @@ export default function DateFilter({ onDateRangeChange, minDate, maxDate }) {
                   }}
                   min={customStartDate || minDateStr}
                   max={maxDateStr}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand dark:focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -207,16 +207,16 @@ export default function DateFilter({ onDateRangeChange, minDate, maxDate }) {
         )}
       </div>
 
-      {/* Quick Preset Buttons */}
-      <div className="flex items-center gap-1">
+      {/* Quick Preset Buttons - Spread evenly */}
+      <div className="flex items-center gap-2 flex-1 justify-end">
         {presets.map((preset) => (
           <button
             key={preset}
             onClick={() => handlePresetClick(preset)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-1 ${
               selectedRange === preset
-                ? 'bg-gray-900 text-white'
-                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                ? 'bg-gray-900 dark:bg-gray-700 text-white'
+                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             {preset}

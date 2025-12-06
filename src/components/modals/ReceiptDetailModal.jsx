@@ -133,7 +133,7 @@ export default function ReceiptDetailModal({
               </div>
             )}
 
-            {status === 'Flagged' && (
+            {(status === 'Rejected' || status === 'Flagged') && (
               <div className="flex flex-col gap-3">
                 <button 
                   onClick={() => onReopenClaim(receipt._id)}

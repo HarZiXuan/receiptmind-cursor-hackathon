@@ -5,7 +5,7 @@ export default function SortableHeader({ label, sortKey, currentSort, onSort }) 
   
   return (
     <th 
-      className="px-6 py-4 font-medium cursor-pointer hover:text-gray-700 transition-colors select-none"
+      className="px-6 py-4 font-medium cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors select-none"
       onClick={() => onSort(sortKey)}
     >
       <div className="flex items-center gap-1">

@@ -81,8 +81,8 @@ export default function PieChart({ data, totalAmount, onStatusSelect, selectedSt
              </>
           ) : (
              <>
-               <p className="text-xs text-gray-500 font-medium">{selectedStatus}</p>
-               <p className="text-xl font-bold text-gray-900">{formatAmount(displayAmount || 0)}</p>
+               <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{selectedStatus}</p>
+               <p className="text-xl font-bold text-gray-900 dark:text-white">{formatAmount(displayAmount || 0)}</p>
              </>
           )}
         </div>
@@ -95,13 +95,15 @@ export default function PieChart({ data, totalAmount, onStatusSelect, selectedSt
             key={item.label}
             onClick={() => onStatusSelect(item.label)}
             className={`flex items-start gap-2 p-2 rounded-lg transition-all text-left ${
-              selectedStatus === item.label ? 'bg-gray-50 ring-1 ring-gray-200' : 'hover:bg-gray-50'
+              selectedStatus === item.label 
+                ? 'bg-gray-50 dark:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-600' 
+                : 'hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             <span className="w-3 h-3 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: item.color }}></span>
             <div>
-              <div className="text-xs font-medium text-gray-900">{item.label}</div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs font-medium text-gray-900 dark:text-white">{item.label}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 {formatAmount(item.amount)} ({Math.round((item.amount / totalAmount) * 100) || 0}%)
               </div>
             </div>
