@@ -340,17 +340,32 @@ export const reject = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const receipt = await ctx.db.get(args.id);
+    
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+    
+    // Only allow rejecting receipts with "Pending Approve" status
+    if (receipt.status !== "Pending Approve") {
+      throw new Error("Can only reject receipts with 'Pending Approve' status");
+    }
+    
     const updates = {
-      status: "Pending Approve",
+      status: "Flagged",
+      is_flagged: true,
       is_paid: false,
       updatedAt: new Date().toISOString(),
     };
 
+    // Store rejection reason in flag_reason field
     if (args.reason) {
-      updates.notes = args.reason;
+      updates.flag_reason = args.reason;
     }
 
     await ctx.db.patch(args.id, updates);
+    
+    console.log(`✅ Rejected receipt ${args.id}${args.reason ? ` with reason: ${args.reason}` : ''}`);
   },
 });
 

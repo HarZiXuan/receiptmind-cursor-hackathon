@@ -262,6 +262,7 @@ export default function Dashboard() {
   const initiatePayoutMutation = useMutation(api.receipts.initiatePayout);
   const undoApprovalMutation = useMutation(api.receipts.undoApproval);
   const reopenClaimMutation = useMutation(api.receipts.reopenClaim);
+  const rejectMutation = useMutation(api.receipts.reject);
   const sendRejectionNoteMutation = useMutation(api.receipts.sendRejectionNote);
   const archiveMutation = useMutation(api.receipts.archive);
 
@@ -331,6 +332,35 @@ export default function Dashboard() {
       console.error('Failed to reopen claim:', error);
       setToast({
         message: 'Failed to reopen claim. Please try again.',
+        type: 'error'
+      });
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      // Prompt for optional rejection reason
+      const reason = prompt('Enter rejection reason (optional):');
+      
+      // If user clicked cancel, don't proceed
+      if (reason === null) {
+        return;
+      }
+      
+      await rejectMutation({ 
+        id,
+        reason: reason || undefined // Pass undefined if empty string
+      });
+      
+      setToast({
+        message: 'Receipt rejected and flagged for review.',
+        type: 'success'
+      });
+      setSelectedId(null);
+    } catch (error) {
+      console.error('Failed to reject receipt:', error);
+      setToast({
+        message: 'Failed to reject receipt. Please try again.',
         type: 'error'
       });
     }
@@ -677,6 +707,7 @@ export default function Dashboard() {
           onDirectPay={handleDirectPay}
           onUndoApproval={handleUndoApproval}
           onReopenClaim={handleReopenClaim}
+          onReject={handleReject}
           onSendRejectionNote={handleSendRejectionNote}
           onArchive={handleArchive}
         />
