@@ -14,6 +14,8 @@ import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
 import type * as policies from "../policies.js";
 import type * as receipts from "../receipts.js";
+import type * as seed from "../seed.js";
+import type * as seedData from "../seedData.js";
 import type * as users from "../users.js";
 
 import type {
@@ -29,6 +31,8 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   policies: typeof policies;
   receipts: typeof receipts;
+  seed: typeof seed;
+  seedData: typeof seedData;
   users: typeof users;
 }>;
 
