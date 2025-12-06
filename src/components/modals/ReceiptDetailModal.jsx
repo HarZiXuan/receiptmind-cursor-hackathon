@@ -12,6 +12,7 @@ export default function ReceiptDetailModal({
   onDirectPay,
   onUndoApproval,
   onReopenClaim,
+  onReject,
   onSendRejectionNote,
   onArchive
 }) {
@@ -173,7 +174,10 @@ export default function ReceiptDetailModal({
                   <CreditCard size={18} />
                   Pay via Ryt Bank
                 </button>
-                <button className="flex-1 border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                <button 
+                  onClick={() => onReject(receipt._id)}
+                  className="flex-1 border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                >
                   Reject
                 </button>
               </div>

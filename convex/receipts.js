@@ -1,4 +1,5 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 // Get all receipts
@@ -225,7 +226,71 @@ export const seed = mutation({
   },
 });
 
-// Pay/Approve a receipt
+// Initiate payout with 30-second processing delay (server-side)
+export const initiatePayout = mutation({
+  args: { 
+    id: v.id("receipts"),
+    approvedBy: v.optional(v.id("users")),
+    paymentReference: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Build the update object conditionally
+    const updates = {
+      status: "Approved",
+      is_flagged: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Only add approvedBy if it's provided
+    if (args.approvedBy) {
+      updates.approvedBy = args.approvedBy;
+    }
+
+    // Mark as approved immediately
+    await ctx.db.patch(args.id, updates);
+    
+    // Schedule completion after 30 seconds (happens on server, survives browser refresh!)
+    await ctx.scheduler.runAfter(
+      30000, // 30 seconds in milliseconds
+      internal.receipts.completePayoutInternal,
+      { 
+        receiptId: args.id,
+        paymentReference: args.paymentReference || `PAY-${Date.now()}`,
+      }
+    );
+    
+    const completionTime = new Date(Date.now() + 30000).toISOString();
+    console.log(`💰 Payment approved for receipt ${args.id}, will complete payment at ${completionTime}`);
+    
+    return { 
+      receiptId: args.id, 
+      status: "Approved",
+      willCompleteAt: completionTime
+    };
+  },
+});
+
+// Internal mutation called by scheduler after 30 seconds
+export const completePayoutInternal = internalMutation({
+  args: { 
+    receiptId: v.id("receipts"),
+    paymentReference: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // This runs automatically on the server after 30 seconds
+    await ctx.db.patch(args.receiptId, {
+      status: "Paid",
+      is_paid: true,
+      payment_date: new Date().toISOString(),
+      payment_reference: args.paymentReference,
+      updatedAt: new Date().toISOString(),
+    });
+    
+    console.log(`✅ Payment completed for receipt ${args.receiptId} with reference ${args.paymentReference}`);
+  },
+});
+
+// Pay/Approve a receipt (instant, no delay - for admin override)
 export const pay = mutation({
   args: { 
     id: v.id("receipts"),
@@ -275,17 +340,61 @@ export const reject = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const receipt = await ctx.db.get(args.id);
+    
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+    
+    // Only allow rejecting receipts with "Pending Approve" status
+    if (receipt.status !== "Pending Approve") {
+      throw new Error("Can only reject receipts with 'Pending Approve' status");
+    }
+    
     const updates = {
-      status: "Pending Approve",
+      status: "Flagged",
+      is_flagged: true,
       is_paid: false,
       updatedAt: new Date().toISOString(),
     };
 
+    // Store rejection reason in flag_reason field
     if (args.reason) {
-      updates.notes = args.reason;
+      updates.flag_reason = args.reason;
     }
 
     await ctx.db.patch(args.id, updates);
+    
+    console.log(`✅ Rejected receipt ${args.id}${args.reason ? ` with reason: ${args.reason}` : ''}`);
+  },
+});
+
+// Reopen a flagged claim - change back to pending review
+export const reopenClaim = mutation({
+  args: { 
+    id: v.id("receipts"),
+  },
+  handler: async (ctx, args) => {
+    const receipt = await ctx.db.get(args.id);
+    
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+    
+    // Only allow reopening if receipt is flagged
+    if (receipt.status !== "Flagged" && !receipt.is_flagged) {
+      throw new Error("Can only reopen flagged receipts");
+    }
+    
+    // Reset to pending approval state
+    await ctx.db.patch(args.id, {
+      status: "Pending Approve",
+      is_flagged: false,
+      flag_reason: undefined, // Clear the flag reason
+      updatedAt: new Date().toISOString(),
+    });
+    
+    console.log(`✅ Reopened claim for receipt ${args.id}`);
   },
 });
 
