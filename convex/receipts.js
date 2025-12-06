@@ -69,6 +69,43 @@ export const getByStatus = query({
   },
 });
 
+// Get receipt by invoice number with employee details
+export const getByInvoiceNumber = query({
+  args: { invoice_number: v.string() },
+  handler: async (ctx, args) => {
+    const receipt = await ctx.db
+      .query("receipts")
+      .withIndex("by_invoice_number", (q) => q.eq("invoice_number", args.invoice_number))
+      .first();
+
+    if (!receipt) {
+      return null;
+    }
+
+    // Get employee details
+    let employee = null;
+    let submittedByUser = null;
+    let approvedByUser = null;
+
+    if (receipt.employeeId) {
+      employee = await ctx.db.get(receipt.employeeId);
+    }
+    if (receipt.submittedBy) {
+      submittedByUser = await ctx.db.get(receipt.submittedBy);
+    }
+    if (receipt.approvedBy) {
+      approvedByUser = await ctx.db.get(receipt.approvedBy);
+    }
+
+    return {
+      ...receipt,
+      employee,
+      submittedByUser,
+      approvedByUser,
+    };
+  },
+});
+
 // Seed database with initial data
 export const seed = mutation({
   args: {},
@@ -446,6 +483,7 @@ export const create = mutation({
     submittedBy: v.optional(v.id("users")),
     is_modified: v.optional(v.boolean()),
     notes: v.optional(v.string()),
+    invoice_number: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Get employee details
@@ -469,6 +507,7 @@ export const create = mutation({
       image_url: args.image_url,
       is_modified: args.is_modified || false,
       notes: args.notes,
+      invoice_number: args.invoice_number,
       createdAt: now,
       updatedAt: now,
     });

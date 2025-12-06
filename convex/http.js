@@ -122,7 +122,7 @@ http.route({
     const body = await request.json();
     
     // Validate required fields
-    const { employeeId, receipt_date, merchant_name, total_amount, category, image_base64 } = body;
+    const { employeeId, receipt_date, merchant_name, total_amount, category, image_base64, invoice_number } = body;
     
     if (!employeeId || !receipt_date || !merchant_name || !total_amount || !category || !image_base64) {
       return new Response(JSON.stringify({ 
@@ -176,6 +176,7 @@ http.route({
       image_url,
       is_modified: body.is_modified || false,
       notes: body.notes,
+      invoice_number: invoice_number,
     });
 
     return new Response(JSON.stringify({ 
@@ -183,6 +184,7 @@ http.route({
       receiptId,
       display_id,
       image_url,
+      invoice_number: invoice_number,
       employee: {
         id: employee._id,
         name: employee.name,
@@ -244,6 +246,77 @@ http.route({
         phoneNumber: employee.phoneNumber,
         position: employee.position,
         isActive: employee.isActive,
+      }
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }),
+});
+
+// 4. GET /receipt/check?invoiceNumber=... - Check if invoice number already exists
+http.route({
+  path: "/receipt/check",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    // Validate bearer token
+    const auth = await validateBearerToken(request);
+    if (!auth.valid) {
+      return new Response(JSON.stringify({ error: auth.error }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Get invoice number from query params
+    const url = new URL(request.url);
+    const invoiceNumber = url.searchParams.get("invoiceNumber");
+    
+    if (!invoiceNumber) {
+      return new Response(JSON.stringify({ 
+        error: "Missing invoiceNumber query parameter" 
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Check if receipt with this invoice number exists
+    const receipt = await ctx.runQuery(api.receipts.getByInvoiceNumber, { invoice_number: invoiceNumber });
+    
+    if (!receipt) {
+      return new Response(JSON.stringify({ 
+        success: true,
+        exists: false,
+        message: "Invoice number is available - no duplicate found"
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Return full receipt details if found
+    return new Response(JSON.stringify({ 
+      success: true,
+      exists: true,
+      message: "Invoice number already exists",
+      receipt: {
+        id: receipt._id,
+        display_id: receipt.display_id,
+        invoice_number: receipt.invoice_number,
+        submission_date: receipt.submission_date,
+        receipt_date: receipt.receipt_date,
+        merchant_name: receipt.merchant_name,
+        total_amount: receipt.total_amount,
+        category: receipt.category,
+        status: receipt.status,
+        image_url: receipt.image_url,
+        employee: receipt.employee ? {
+          id: receipt.employee._id,
+          employeeId: receipt.employee.employeeId,
+          name: receipt.employee.name,
+          email: receipt.employee.email,
+        } : null,
       }
     }), {
       status: 200,
