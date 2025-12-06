@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Search, Plus, Activity, CheckCircle2, AlertCircle, Clock, DollarSign } from 'lucide-react';
@@ -37,6 +37,40 @@ export default function Dashboard() {
     }
   }, [isLoading, receiptsData, receipts.length]);
 
+  // Detect payment completion (status change from "Approved" to "Paid")
+  useEffect(() => {
+    if (isLoading || !receipts || receipts.length === 0) {
+      // Initialize previous receipts on first load
+      if (!isLoading && receipts.length > 0) {
+        receipts.forEach(receipt => {
+          if (receipt?._id) {
+            previousReceiptsRef.current.set(receipt._id, receipt.status);
+          }
+        });
+      }
+      return;
+    }
+
+    // Check for status changes from "Approved" to "Paid"
+    receipts.forEach(receipt => {
+      if (!receipt?._id) return;
+      
+      const previousStatus = previousReceiptsRef.current.get(receipt._id);
+      const currentStatus = receipt.status;
+
+      // If status changed from "Approved" to "Paid", show success toast
+      if (previousStatus === "Approved" && currentStatus === "Paid") {
+        setToast({
+          message: `✅ Payment completed! Receipt #${receipt.display_id} has been paid via Ryt Bank.`,
+          type: 'success'
+        });
+      }
+
+      // Update the stored status
+      previousReceiptsRef.current.set(receipt._id, currentStatus);
+    });
+  }, [receipts, isLoading]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedId, setSelectedId] = useState(null);
@@ -45,6 +79,7 @@ export default function Dashboard() {
   const [rowLimit, setRowLimit] = useState(10);
   const [showAll, setShowAll] = useState(true); // Default to showing all rows
   const [toast, setToast] = useState(null); // Toast notification state
+  const previousReceiptsRef = useRef(new Map()); // Track previous receipt statuses
 
   const filteredReceipts = useMemo(() => {
     if (!receipts || receipts.length === 0) {
@@ -251,12 +286,18 @@ export default function Dashboard() {
       });
 
       console.log(`✅ Receipt approved! Payment will complete at ${result.willCompleteAt}`);
-      alert(`Receipt approved! Payment will be processed in 30 seconds via Ryt Bank.`);
+      setToast({
+        message: 'Receipt approved! Payment is being processed via Ryt Bank and will complete in 30 seconds.',
+        type: 'success'
+      });
 
       // No need to manually update status or close modal immediately if we want them to see the status update via real-time query.
     } catch (error) {
       console.error('❌ Failed to initiate payment:', error);
-      alert('Failed to initiate payment. Please try again.');
+      setToast({
+        message: 'Failed to initiate payment. Please try again.',
+        type: 'error'
+      });
     }
   };
 
