@@ -4,7 +4,7 @@ import { formatAmount } from '../../utils/formatAmount';
 const BAR_COLOR = "#0000E6"; 
 const HOVER_COLOR = "#3333FF";
 
-export default function BarChart({ data, minDate, maxDate }) {
+export default function BarChart({ data, minDate, maxDate, preset }) {
   const [hoveredData, setHoveredData] = useState(null);
   const [hoverIndex, setHoverIndex] = useState(null);
   const chartRef = useRef(null);
@@ -19,7 +19,7 @@ export default function BarChart({ data, minDate, maxDate }) {
 
   const dateRangeDays = getDateRangeDays();
 
-  // Create fixed date buckets based on range and aggregate data
+  // Create fixed date buckets based on preset and aggregate data
   const createFixedBuckets = () => {
     if (!minDate || !maxDate) {
       // Fallback: use data as-is if no date range
@@ -30,12 +30,54 @@ export default function BarChart({ data, minDate, maxDate }) {
     const end = new Date(maxDate);
     const buckets = [];
 
-    // 7D: Create 7 fixed daily buckets
-    if (dateRangeDays && dateRangeDays <= 7) {
+    // 7D: Create 7 bars for Monday-Sunday (7 days of the week)
+    if (preset === '7D') {
+      // Find the Monday of the week containing the end date (most recent week)
+      const monday = new Date(end);
+      const dayOfWeek = monday.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days
+      monday.setDate(monday.getDate() + daysToMonday);
+      monday.setHours(0, 0, 0, 0);
+      
+      // Create 7 daily buckets (Monday to Sunday)
       for (let i = 0; i < 7; i++) {
+        const bucketDate = new Date(monday);
+        bucketDate.setDate(monday.getDate() + i);
+        bucketDate.setHours(0, 0, 0, 0);
+        const bucketEnd = new Date(bucketDate);
+        bucketEnd.setHours(23, 59, 59, 999);
+        
+        const dateKey = bucketDate.toISOString().split('T')[0];
+        
+        // Aggregate all data that falls on this specific day
+        let dayAmount = 0;
+        data.forEach(d => {
+          if (d.date) {
+            const dataDate = new Date(d.date);
+            dataDate.setHours(0, 0, 0, 0);
+            if (dataDate.getTime() === bucketDate.getTime()) {
+              dayAmount += d.amount || 0;
+            }
+          }
+        });
+        
+        buckets.push({
+          date: dateKey,
+          amount: dayAmount,
+          bucketDate: dateKey
+        });
+      }
+    }
+    // 30D: Create bars for each day in the date range (30/31 days)
+    else if (preset === '30D') {
+      const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+      
+      for (let i = 0; i < totalDays; i++) {
         const bucketDate = new Date(start);
         bucketDate.setDate(start.getDate() + i);
         bucketDate.setHours(0, 0, 0, 0);
+        if (bucketDate > end) break;
+        
         const bucketEnd = new Date(bucketDate);
         bucketEnd.setHours(23, 59, 59, 999);
         if (bucketEnd > end) bucketEnd.setTime(end.getTime());
@@ -61,26 +103,30 @@ export default function BarChart({ data, minDate, maxDate }) {
         });
       }
     }
-    // 1M (30D): Create 4 fixed weekly buckets
-    else if (dateRangeDays && dateRangeDays <= 30) {
-      const totalDays = dateRangeDays;
-      const daysPerWeek = totalDays / 4;
+    // 3M: Create 12 bars for 12 weeks (3 months = ~12 weeks)
+    else if (preset === '3M') {
+      // Find the Monday of the week containing the start date
+      const monday = new Date(start);
+      const dayOfWeek = monday.getDay();
+      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      monday.setDate(monday.getDate() + daysToMonday);
+      monday.setHours(0, 0, 0, 0);
       
-      for (let i = 0; i < 4; i++) {
-        const weekStart = new Date(start);
-        weekStart.setDate(start.getDate() + Math.floor(i * daysPerWeek));
+      // Create 12 weekly buckets
+      for (let i = 0; i < 12; i++) {
+        const weekStart = new Date(monday);
+        weekStart.setDate(monday.getDate() + (i * 7));
         weekStart.setHours(0, 0, 0, 0);
         const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + Math.ceil(daysPerWeek) - 1);
+        weekEnd.setDate(weekStart.getDate() + 6);
         weekEnd.setHours(23, 59, 59, 999);
         if (weekEnd > end) weekEnd.setTime(end.getTime());
+        if (weekStart > end) break;
         
         // Aggregate all data within this week
         let weekAmount = 0;
         const weekStartKey = weekStart.toISOString().split('T')[0];
-        const weekEndKey = weekEnd.toISOString().split('T')[0];
         
-        // Check all data points to see if they fall within this week
         data.forEach(d => {
           if (d.date) {
             const dataDate = new Date(d.date);
@@ -94,13 +140,53 @@ export default function BarChart({ data, minDate, maxDate }) {
         buckets.push({
           date: weekStartKey,
           amount: weekAmount,
-          bucketDate: weekStartKey,
-          weekEnd: weekEndKey
+          bucketDate: weekStartKey
         });
       }
     }
-    // 1Y (12M): Create 12 fixed monthly buckets
-    else if (dateRangeDays && dateRangeDays > 30) {
+    // 6M: Create 24 bars for 24 weeks (6 months = ~24 weeks)
+    else if (preset === '6M') {
+      // Find the Monday of the week containing the start date
+      const monday = new Date(start);
+      const dayOfWeek = monday.getDay();
+      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      monday.setDate(monday.getDate() + daysToMonday);
+      monday.setHours(0, 0, 0, 0);
+      
+      // Create 24 weekly buckets
+      for (let i = 0; i < 24; i++) {
+        const weekStart = new Date(monday);
+        weekStart.setDate(monday.getDate() + (i * 7));
+        weekStart.setHours(0, 0, 0, 0);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+        if (weekEnd > end) weekEnd.setTime(end.getTime());
+        if (weekStart > end) break;
+        
+        // Aggregate all data within this week
+        let weekAmount = 0;
+        const weekStartKey = weekStart.toISOString().split('T')[0];
+        
+        data.forEach(d => {
+          if (d.date) {
+            const dataDate = new Date(d.date);
+            dataDate.setHours(0, 0, 0, 0);
+            if (dataDate >= weekStart && dataDate <= weekEnd) {
+              weekAmount += d.amount || 0;
+            }
+          }
+        });
+        
+        buckets.push({
+          date: weekStartKey,
+          amount: weekAmount,
+          bucketDate: weekStartKey
+        });
+      }
+    }
+    // 12M (1Y): Create 12 bars for 12 months (January-December)
+    else if (preset === '12M') {
       const startMonth = start.getMonth();
       const startYear = start.getFullYear();
       
@@ -116,9 +202,7 @@ export default function BarChart({ data, minDate, maxDate }) {
         // Aggregate all data within this month
         let monthAmount = 0;
         const monthStartKey = monthDate.toISOString().split('T')[0];
-        const monthEndKey = monthEnd.toISOString().split('T')[0];
         
-        // Check all data points to see if they fall within this month
         data.forEach(d => {
           if (d.date) {
             const dataDate = new Date(d.date);
@@ -136,7 +220,7 @@ export default function BarChart({ data, minDate, maxDate }) {
         });
       }
     }
-    // Default: use data as-is
+    // Default: use data as-is if no preset or custom range
     else {
       return data.map(d => ({ ...d, bucketDate: d.date }));
     }
@@ -200,24 +284,34 @@ export default function BarChart({ data, minDate, maxDate }) {
     setHoverIndex(null);
   };
 
-  // Format date label based on range - for fixed buckets
+  // Format date label based on preset - for fixed buckets
   const formatDateLabel = (bucketData, index) => {
     if (!bucketData || !bucketData.bucketDate) return '';
     try {
       const date = new Date(bucketData.bucketDate);
       
-      // 7D: Show all 7 dates as "12/7", "12/8" format
-      if (dateRangeDays && dateRangeDays <= 7) {
+      // 7D: Show day name (Monday, Tuesday, etc.)
+      if (preset === '7D') {
+        return date.toLocaleDateString('en-US', { weekday: 'short' });
+      }
+      
+      // 30D: Show date as "12/7", "12/8" format
+      if (preset === '30D') {
         return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
       }
       
-      // 30D (1M): Show weekly labels (4 weeks) - show start date of week
-      if (dateRangeDays && dateRangeDays <= 30) {
+      // 3M: Show date format like "12/1"
+      if (preset === '3M') {
         return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
       }
       
-      // 12M (1Y): Show monthly labels
-      if (dateRangeDays && dateRangeDays > 30) {
+      // 6M: Show date format like "12/1"
+      if (preset === '6M') {
+        return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+      }
+      
+      // 12M (1Y): Show month name (Jan, Feb, etc.)
+      if (preset === '12M') {
         return date.toLocaleDateString('en-US', { month: 'short' });
       }
       
@@ -229,11 +323,20 @@ export default function BarChart({ data, minDate, maxDate }) {
   };
 
   // Get labels for all fixed buckets (after slotWidth is defined)
-  const dateLabels = visibleData.map((d, i) => ({
+  const allDateLabels = visibleData.map((d, i) => ({
     date: d.bucketDate || d.date,
     label: formatDateLabel(d, i),
     position: (i * slotWidth) + (slotWidth / 2)
   }));
+
+  // Filter labels for 30D to show every 3-5 days (not all 30 labels)
+  const dateLabels = preset === '30D' && allDateLabels.length > 10
+    ? allDateLabels.filter((_, i) => {
+        // Show first, last, and every 3rd label in between
+        if (i === 0 || i === allDateLabels.length - 1) return true;
+        return i % 3 === 0;
+      })
+    : allDateLabels;
 
   return (
     <div className="relative w-full h-full flex flex-col">

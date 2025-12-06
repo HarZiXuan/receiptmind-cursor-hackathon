@@ -1,7 +1,34 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { Plus, Edit2, Trash2, Users, X, Save } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, X, Save, AlertTriangle } from 'lucide-react';
+import Toast from '../components/ui/Toast';
+
+// Format phone number to +60 format
+const formatPhoneNumber = (phone) => {
+  if (!phone) return '';
+  // Remove all non-digit characters
+  let cleaned = phone.replace(/\D/g, '');
+  
+  // If starts with 60, add +
+  if (cleaned.startsWith('60')) {
+    return '+' + cleaned;
+  }
+  // If starts with 0, replace with +60
+  if (cleaned.startsWith('0')) {
+    return '+60' + cleaned.substring(1);
+  }
+  // If doesn't start with +, add +60
+  if (!phone.startsWith('+')) {
+    return '+60' + cleaned;
+  }
+  // If already has +60, return as is
+  if (phone.startsWith('+60')) {
+    return phone;
+  }
+  // Otherwise, ensure it starts with +60
+  return '+60' + cleaned;
+};
 
 export default function ManageEmployee() {
   const employeesData = useQuery(api.employees.get);
@@ -10,13 +37,18 @@ export default function ManageEmployee() {
   const createEmployee = useMutation(api.employees.create);
   const updateEmployee = useMutation(api.employees.update);
   const removeEmployee = useMutation(api.employees.remove);
+  const activateEmployee = useMutation(api.employees.activate);
+  const deactivateEmployee = useMutation(api.employees.deactivate);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState(null);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [toast, setToast] = useState(null);
   const [formData, setFormData] = useState({
     employee_id: '',
     name: '',
-    email: '',
+    phoneNumber: '',
     department: '',
     status: 'Active'
   });
@@ -26,7 +58,7 @@ export default function ManageEmployee() {
     setFormData({
       employee_id: '',
       name: '',
-      email: '',
+      phoneNumber: '',
       department: '',
       status: 'Active'
     });
@@ -38,27 +70,49 @@ export default function ManageEmployee() {
     setFormData({
       employee_id: employee.employeeId,
       name: employee.name,
-      email: employee.email,
+      phoneNumber: employee.phoneNumber || '',
       department: employee.position, // Mapping position to department based on mock data usage
       status: employee.isActive ? 'Active' : 'Inactive'
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this employee?')) {
-      try {
-        await removeEmployee({ id });
-      } catch (error) {
-        console.error('Failed to delete employee:', error);
-        alert('Failed to delete employee: ' + error.message);
-      }
+  const handleDeleteClick = (employee) => {
+    setEmployeeToDelete(employee);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!employeeToDelete) return;
+    
+    try {
+      await removeEmployee({ id: employeeToDelete._id });
+      setToast({
+        message: `Employee ${employeeToDelete.name} has been deleted successfully.`,
+        type: 'success'
+      });
+      setIsDeleteConfirmOpen(false);
+      setEmployeeToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete employee:', error);
+      setToast({
+        message: 'Failed to delete employee: ' + error.message,
+        type: 'error'
+      });
     }
   };
 
+  const handleDeleteCancel = () => {
+    setIsDeleteConfirmOpen(false);
+    setEmployeeToDelete(null);
+  };
+
   const handleSave = async () => {
-    if (!formData.employee_id || !formData.name || !formData.email || !formData.department) {
-      alert('Please fill in all required fields');
+    if (!formData.employee_id || !formData.name || !formData.department) {
+      setToast({
+        message: 'Please fill in all required fields',
+        type: 'error'
+      });
       return;
     }
 
@@ -69,34 +123,56 @@ export default function ManageEmployee() {
           id: editingEmployee._id,
           employeeId: formData.employee_id,
           name: formData.name,
-          email: formData.email,
-          position: formData.department, // Using department input for position
-          // isActive is handled by separate activate/deactivate mutations in backend logic usually, 
-          // but let's see if we can update it here. The update mutation doesn't seem to take isActive.
-          // We might need to call activate/deactivate separately if status changed.
+          phoneNumber: formData.phoneNumber || undefined,
+          position: formData.department,
+        });
+
+        // Handle status change separately
+        const wasActive = editingEmployee.isActive;
+        const shouldBeActive = formData.status === 'Active';
+        
+        if (wasActive !== shouldBeActive) {
+          if (shouldBeActive) {
+            await activateEmployee({ id: editingEmployee._id });
+          } else {
+            await deactivateEmployee({ id: editingEmployee._id });
+          }
+        }
+
+        setToast({
+          message: `Employee ${formData.name} has been updated successfully.`,
+          type: 'success'
         });
       } else {
         // Add new employee
         await createEmployee({
           employeeId: formData.employee_id,
           name: formData.name,
-          email: formData.email,
+          phoneNumber: formData.phoneNumber || undefined,
           position: formData.department,
-          // phoneNumber is optional
+        });
+
+        setToast({
+          message: `Employee ${formData.name} has been added successfully.`,
+          type: 'success'
         });
       }
+      
       setIsModalOpen(false);
       setEditingEmployee(null);
       setFormData({
         employee_id: '',
         name: '',
-        email: '',
+        phoneNumber: '',
         department: '',
         status: 'Active'
       });
     } catch (error) {
       console.error('Failed to save employee:', error);
-      alert('Failed to save employee: ' + error.message);
+      setToast({
+        message: 'Failed to save employee: ' + error.message,
+        type: 'error'
+      });
     }
   };
 
@@ -106,7 +182,7 @@ export default function ManageEmployee() {
     setFormData({
       employee_id: '',
       name: '',
-      email: '',
+      phoneNumber: '',
       department: '',
       status: 'Active'
     });
@@ -137,7 +213,7 @@ export default function ManageEmployee() {
               <tr>
                 <th className="px-6 py-4">Employee ID</th>
                 <th className="px-6 py-4">Name</th>
-                <th className="px-6 py-4">Email</th>
+                <th className="px-6 py-4">Phone Number</th>
                 <th className="px-6 py-4">Department/Position</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -156,7 +232,9 @@ export default function ManageEmployee() {
                   <tr key={employee._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{employee.employeeId}</td>
                     <td className="px-6 py-4 text-gray-700 dark:text-gray-300">{employee.name}</td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{employee.email}</td>
+                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
+                      {employee.phoneNumber ? formatPhoneNumber(employee.phoneNumber) : '-'}
+                    </td>
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{employee.position}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -177,7 +255,7 @@ export default function ManageEmployee() {
                           <Edit2 size={16} />
                         </button>
                         <button
-                          onClick={() => handleDelete(employee._id)}
+                          onClick={() => handleDeleteClick(employee)}
                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                           title="Delete"
                         >
@@ -249,15 +327,29 @@ export default function ManageEmployee() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Email <span className="text-red-500">*</span>
+                    Phone Number
                   </label>
                   <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="john@company.com"
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                    placeholder="+60123456789"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand dark:focus:ring-blue-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    Status <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand dark:focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
                 </div>
 
                 <div>
@@ -273,7 +365,6 @@ export default function ManageEmployee() {
                   />
                 </div>
 
-                {/* Status field removed from create/update for simplicity as update mutation doesn't support it directly in one call without separate mutation */}
               </div>
 
               <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
@@ -294,6 +385,61 @@ export default function ManageEmployee() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteConfirmOpen && employeeToDelete && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/20 dark:bg-black/50 backdrop-blur-sm z-50 transition-opacity animate-fade-in" 
+            onClick={handleDeleteCancel}
+          />
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div 
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md animate-slide-up border border-gray-200 dark:border-gray-700"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                    <AlertTriangle size={20} className="text-red-600 dark:text-red-400" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Delete Employee</h2>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  Are you sure you want to delete <span className="font-semibold text-gray-900 dark:text-white">{employeeToDelete.name}</span>? This action cannot be undone.
+                </p>
+              </div>
+              
+              <div className="p-6 flex gap-3">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

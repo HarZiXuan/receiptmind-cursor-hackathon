@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { Search, Plus, Activity, CheckCircle2, AlertCircle, Clock, DollarSign, BarChart3 } from 'lucide-react';
+import { Plus, Activity, CheckCircle2, AlertCircle, Clock, DollarSign, BarChart3 } from 'lucide-react';
 import LineChart from '../components/charts/LineChart';
 import BarChart from '../components/charts/BarChart';
 import PieChart from '../components/charts/PieChart';
@@ -77,6 +77,7 @@ export default function Dashboard() {
   const [selectedId, setSelectedId] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'receipt_date', direction: 'desc' });
   const [dateRange, setDateRange] = useState({ start: null, end: null });
+  const [selectedPreset, setSelectedPreset] = useState(null); // Track selected date preset
   const [rowLimit, setRowLimit] = useState(10);
   const [showAll, setShowAll] = useState(true); // Default to showing all rows
   const [toast, setToast] = useState(null); // Toast notification state
@@ -493,6 +494,7 @@ export default function Dashboard() {
       <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card">
         <DateFilter
           onDateRangeChange={(start, end) => setDateRange({ start, end })}
+          onPresetChange={(preset) => setSelectedPreset(preset)}
           minDate={availableDateRange.minDate}
           maxDate={availableDateRange.maxDate}
         />
@@ -565,8 +567,9 @@ export default function Dashboard() {
             ) : (statusFilter === 'Pending Approve' || chartType === 'bar') ? (
               <BarChart 
                 data={safeAnalytics.graphPoints || []} 
-                minDate={availableDateRange.minDate}
-                maxDate={availableDateRange.maxDate}
+                minDate={dateRange.start || availableDateRange.minDate}
+                maxDate={dateRange.end || availableDateRange.maxDate}
+                preset={selectedPreset}
               />
             ) : (
               <LineChart
@@ -604,19 +607,18 @@ export default function Dashboard() {
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Transactions</h2>
           <div className="flex gap-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                className="pl-4 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-brand dark:focus:border-blue-500 focus:ring-1 focus:ring-brand dark:focus:ring-blue-500"
               />
             </div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand"
+              className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand dark:focus:border-blue-500"
             >
               <option value="Paid">Paid</option>
               <option value="Pending Approve">Pending Approve</option>

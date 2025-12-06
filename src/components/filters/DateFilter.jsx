@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronDown, X } from 'lucide-react';
 
-export default function DateFilter({ onDateRangeChange, minDate, maxDate }) {
+export default function DateFilter({ onDateRangeChange, minDate, maxDate, onPresetChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState(null); // null = custom, or preset name
   const [customStartDate, setCustomStartDate] = useState('');
@@ -78,6 +78,9 @@ export default function DateFilter({ onDateRangeChange, minDate, maxDate }) {
         setIsCustomRange(true);
         setSelectedRange(null);
         onDateRangeChange(startDateObj, endDateObj);
+        if (onPresetChange) {
+          onPresetChange(null); // Custom range, no preset
+        }
       }
     }
   };
@@ -88,6 +91,9 @@ export default function DateFilter({ onDateRangeChange, minDate, maxDate }) {
     setIsCustomRange(false);
     setSelectedRange(null);
     onDateRangeChange(null, null);
+    if (onPresetChange) {
+      onPresetChange(null);
+    }
   };
 
   const handlePresetClick = (preset) => {
@@ -97,6 +103,9 @@ export default function DateFilter({ onDateRangeChange, minDate, maxDate }) {
     setCustomEndDate('');
     const range = getDateRange(preset);
     onDateRangeChange(range.start, range.end);
+    if (onPresetChange) {
+      onPresetChange(preset);
+    }
     setIsOpen(false);
   };
 

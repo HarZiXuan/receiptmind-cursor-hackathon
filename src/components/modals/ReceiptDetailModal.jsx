@@ -68,24 +68,24 @@ export default function ReceiptDetailModal({
       
       {/* Slide-in Panel from Right */}
       <div 
-        className="fixed inset-y-0 right-0 w-full md:w-[480px] bg-white shadow-2xl z-50 animate-slide-in-right"
+        className="fixed inset-y-0 right-0 w-full md:w-[480px] bg-white dark:bg-gray-800 shadow-2xl z-50 animate-slide-in-right"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex flex-col h-full">
-          <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-white">
-            <h2 className="text-xl font-bold text-gray-900">Transaction Details</h2>
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-800">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Transaction Details</h2>
             <button 
               onClick={onClose} 
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <X size={20} />
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
               <div>
-                <p className="text-sm text-gray-500">Total Amount</p>
-                <p className="text-2xl font-bold text-gray-900">{formatAmount(receipt.total_amount)}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Amount</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatAmount(receipt.total_amount)}</p>
               </div>
               <StatusBadge status={receipt.status} isFlagged={receipt.is_flagged} />
             </div>
@@ -99,33 +99,33 @@ export default function ReceiptDetailModal({
             </div>
             {receipt.image_url && (
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-2">Receipt Image</p>
-                <img src={receipt.image_url} className="rounded-xl border border-gray-200 w-full" alt="Receipt" />
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Receipt Image</p>
+                <img src={receipt.image_url} className="rounded-xl border border-gray-200 dark:border-gray-700 w-full" alt="Receipt" />
               </div>
             )}
           </div>
           
-          <div className="p-6 border-t border-gray-200 bg-white">
+          <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             {status === 'Approved' && (
               <div className="flex flex-col gap-3">
                 {countdown !== null && countdown > 0 ? (
-                  <div className="w-full bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                  <div className="w-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-center">
                     <div className="flex items-center justify-center gap-2 mb-2">
-                      <Loader2 size={18} className="text-amber-700 animate-spin" />
-                      <p className="text-sm font-medium text-amber-900">Pending money sending...</p>
+                      <Loader2 size={18} className="text-amber-700 dark:text-amber-400 animate-spin" />
+                      <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Pending money sending...</p>
                     </div>
-                    <p className="text-2xl font-bold text-amber-700">{countdown}s</p>
-                    <p className="text-xs text-amber-600 mt-1">Payment will be processed automatically</p>
+                    <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">{countdown}s</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-300 mt-1">Payment will be processed automatically</p>
                   </div>
                 ) : countdown === 0 ? (
-                  <div className="w-full bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-                    <p className="text-sm font-medium text-green-700">Processing payment...</p>
+                  <div className="w-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 text-center">
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">Processing payment...</p>
                   </div>
                 ) : null}
                 <button 
                   onClick={() => onUndoApproval(receipt._id)}
                   disabled={countdown !== null && countdown > 0}
-                  className="w-full border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <RotateCcw size={18} />
                   Undo Approval
@@ -144,14 +144,14 @@ export default function ReceiptDetailModal({
                 </button>
                 <button 
                   onClick={() => onSendRejectionNote(receipt._id)}
-                  className="w-full border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                  className="w-full border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
                 >
                   <Send size={18} />
                   Send Rejection Note
                 </button>
                 <button 
                   onClick={() => onArchive(receipt._id)}
-                  className="w-full border border-red-200 text-red-700 py-3 rounded-xl font-medium hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+                  className="w-full border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 py-3 rounded-xl font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2"
                 >
                   <Archive size={18} />
                   Archive
@@ -160,7 +160,7 @@ export default function ReceiptDetailModal({
             )}
 
             {status === 'Paid' && (
-              <div className="text-center py-4 text-gray-500 text-sm">
+              <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
                 No actions available for paid receipts
               </div>
             )}
@@ -176,7 +176,7 @@ export default function ReceiptDetailModal({
                 </button>
                 <button 
                   onClick={() => onReject(receipt._id)}
-                  className="flex-1 border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                  className="flex-1 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   Reject
                 </button>
