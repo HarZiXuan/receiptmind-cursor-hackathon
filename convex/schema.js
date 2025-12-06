@@ -50,12 +50,12 @@ export default defineSchema({
     approver_id: v.optional(v.number()),
     image_url: v.string(),
     is_paid: v.boolean(),
-    physical_id_tag: v.optional(v.string()),
     
     // NEW tracking fields (TEMPORARY: optional for migration, will be required after)
     payment_date: v.optional(v.string()),
     payment_reference: v.optional(v.string()),
     notes: v.optional(v.string()),
+    is_modified: v.boolean(),
     createdAt: v.optional(v.string()),
     updatedAt: v.optional(v.string()),
   })

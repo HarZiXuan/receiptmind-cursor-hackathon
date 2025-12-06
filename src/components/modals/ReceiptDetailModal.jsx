@@ -95,7 +95,6 @@ export default function ReceiptDetailModal({
               <DetailItem label="Date" value={receipt.receipt_date} />
               <DetailItem label="Category" value={receipt.category} />
               <DetailItem label="Employee ID" value={receipt.employee_id} />
-              <DetailItem label="Physical Tag" value={receipt.physical_id_tag || 'N/A'} />
             </div>
             {receipt.image_url && (
               <div>

@@ -53,7 +53,7 @@ curl -X POST "$convexBaseURL/receipt" \
     "total_amount": 45.50,
     "category": "Meals",
     "image_url": "https://example.com/receipt.jpg",
-    "physical_id_tag": "#408",
+    "is_modified": false,
     "notes": "Team lunch meeting"
   }'
 ```
@@ -67,7 +67,7 @@ curl -X POST "$convexBaseURL/receipt" \
 - `image_url` - URL to receipt image
 
 **Optional Fields:**
-- `physical_id_tag` - Physical receipt tag/ID
+- `is_modified` - Boolean indicating if user modified AI-analyzed values (defaults to false)
 - `notes` - Additional notes
 
 **Response (201 Created):**
